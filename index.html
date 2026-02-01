@@ -5,32 +5,84 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Neurones Noirs - Parkour</title>
   <style>
-    body { margin:0; padding:0; background:#000; overflow:hidden; touch-action:none; font-family:Arial,sans-serif; }
-    canvas { display:block; width:100vw; height:100vh; background:linear-gradient(#0a001a 0%, #1a0033 50%, #000 100%); }
-    #ui { position:fixed; top:10px; left:10px; color:#0f0; font-size:20px; z-index:10; text-shadow:0 0 5px #0f0; pointer-events:none; }
-    #shopBtn { position:fixed; top:10px; right:10px; padding:8px 16px; background:#00f; color:#fff; border:none; border-radius:8px; font-size:16px; z-index:10; cursor:pointer; }
-    #shop { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.9); padding:30px; border:2px solid #0f0; border-radius:12px; color:#0f0; text-align:center; display:none; max-width:320px; z-index:20; box-shadow:0 0 20px #0f0; }
-    #shop button { margin:8px; padding:10px 20px; background:#0f0; color:#000; border:none; border-radius:6px; font-size:16px; cursor:pointer; }
-    #closeShop { background:#f00; color:#fff; }
-    #skinPreview { width:80px; height:80px; margin:15px auto; border:3px solid #0f0; border-radius:50%; box-shadow:0 0 15px #0f0; }
-    #joystick { position:fixed; bottom:40px; left:40px; width:120px; height:120px; background:rgba(255,255,255,0.15); border-radius:50%; z-index:5; touch-action:none; display:none; }
-    #knob { width:60px; height:60px; background:rgba(0,255,0,0.4); border-radius:50%; position:absolute; top:30px; left:30px; transition:0.1s; }
-    #jumpBtn { position:fixed; bottom:40px; right:40px; width:90px; height:90px; background:rgba(255,0,0,0.5); border:none; border-radius:50%; color:#fff; font-size:40px; z-index:5; touch-action:none; }
-    #jumpBtn:active { transform:scale(0.92); background:rgba(255,0,0,0.8); }
-    #gameOver { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); color:#f00; font-size:50px; text-shadow:0 0 10px #f00; display:none; z-index:15; pointer-events:none; }
+    body {
+      margin:0; padding:0; background:#000; overflow:hidden; touch-action:none;
+      font-family:Arial, sans-serif; user-select:none;
+    }
+    canvas {
+      display:block; width:100vw; height:100vh;
+    }
+    #ui {
+      position:fixed; top:10px; left:10px; color:#0ff; font-size:22px; font-weight:bold;
+      z-index:10; text-shadow:0 0 8px #0ff, 0 0 15px #0ff; pointer-events:none;
+    }
+    #shopBtn {
+      position:fixed; top:10px; right:10px; padding:10px 20px;
+      background:#00f8; color:#fff; border:none; border-radius:10px; font-size:18px;
+      z-index:10; cursor:pointer; box-shadow:0 0 10px #00f;
+    }
+    #shop {
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      background:rgba(0,0,20,0.92); padding:25px; border:3px solid #0f0;
+      border-radius:15px; color:#0f0; text-align:center; display:none;
+      max-width:340px; z-index:20; box-shadow:0 0 30px #0f0 inset;
+    }
+    #shop button {
+      margin:10px 5px; padding:12px 24px; background:#0f0; color:#000;
+      border:none; border-radius:8px; font-size:16px; cursor:pointer;
+      box-shadow:0 0 10px #0f0;
+    }
+    #closeShop { background:#f44; color:#fff; box-shadow:0 0 10px #f44; }
+    #skinPreview {
+      width:90px; height:90px; margin:15px auto;
+      border:4px solid #0f0; border-radius:50%; box-shadow:0 0 20px #0f0;
+    }
+    #joystick {
+      position:fixed; bottom:50px; left:50px; width:140px; height:140px;
+      background:rgba(255,255,255,0.12); border-radius:50%; z-index:5;
+      touch-action:none; display:none; box-shadow:0 0 20px #0f0 inset;
+    }
+    #knob {
+      width:70px; height:70px; background:rgba(0,255,0,0.45);
+      border-radius:50%; position:absolute; top:35px; left:35px; transition:0.08s;
+      box-shadow:0 0 15px #0f0;
+    }
+    #jumpBtn {
+      position:fixed; bottom:50px; right:50px; width:100px; height:100px;
+      background:rgba(255,80,0,0.6); border:none; border-radius:50%;
+      color:#fff; font-size:48px; font-weight:bold; z-index:5;
+      touch-action:none; box-shadow:0 0 20px #ff5000;
+    }
+    #jumpBtn:active { transform:scale(0.9); background:rgba(255,120,0,0.9); }
+    #gameOver {
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      color:#f00; font-size:60px; font-weight:bold; text-shadow:0 0 15px #f00;
+      z-index:15; pointer-events:none; text-align:center; display:none;
+    }
+    #gameOver span { font-size:32px; color:#ff0; display:block; margin:20px 0; }
+    #restartBtn {
+      margin-top:30px; padding:15px 40px; background:#0f0; color:#000;
+      border:none; border-radius:10px; font-size:24px; cursor:pointer;
+      box-shadow:0 0 15px #0f0; display:none;
+    }
   </style>
 </head>
 <body>
 
   <canvas id="c"></canvas>
-  <div id="ui">Coins: <span id="coins">0</span> | Score: <span id="score">0</span></div>
+  <div id="ui">Coins: <span id="coins">0</span>  |  Score: <span id="score">0</span>  |  High: <span id="highScore">0</span></div>
   <button id="shopBtn">Skins</button>
-  <div id="gameOver">GAME OVER</div>
+
+  <div id="gameOver">
+    GAME OVER
+    <span>Score: <span id="finalScore">0</span></span>
+    <button id="restartBtn">Rejouer</button>
+  </div>
 
   <div id="shop">
-    <h2>Skins</h2>
+    <h2>Skins Disponibles</h2>
     <div id="skinPreview"></div>
-    <p>Actuel: <span id="skinName">Classique</span></p>
+    <p>Actuel : <span id="skinName">Classique</span></p>
     <div id="skins"></div>
     <button id="closeShop">Fermer</button>
   </div>
@@ -39,85 +91,91 @@
   <button id="jumpBtn">↑</button>
 
 <script>
+// === CONFIG ===
 const c = document.getElementById('c');
 const ctx = c.getContext('2d');
 c.width = window.innerWidth;
 c.height = window.innerHeight;
 
 let coins = localStorage.getItem('nn_coins') ? +localStorage.getItem('nn_coins') : 0;
+let highScore = localStorage.getItem('nn_high') ? +localStorage.getItem('nn_high') : 0;
 let score = 0;
 let currentSkin = localStorage.getItem('nn_skin') || 'classique';
 let gameOver = false;
 let speed = 5;
-let gravity = 0.7;
-let player = { x: 150, y: c.height - 180, w: 50, h: 80, vy: 0, lane: 1, skin: currentSkin };
-let lanes = [c.width*0.25, c.width*0.5, c.width*0.75];
+let gravity = 0.75;
+let player = { x: 150, y: c.height - 200, w: 55, h: 90, vy: 0, lane: 1, skin: currentSkin };
+let lanes = [c.width*0.22, c.width*0.5, c.width*0.78];
 let obstacles = [];
 let collectibles = [];
+let particles = [];
 let lastGen = 0;
 let scrollOffset = 0;
+
+// Mise à jour UI
+document.getElementById('coins').textContent = coins;
+document.getElementById('highScore').textContent = highScore;
+
+// Skins
 const skins = [
-  {id:'classique', name:'Classique', color:'#ff0', price:0},
-  {id:'rouge', name:'Rouge', color:'#f00', price:30},
-  {id:'bleu', name:'Bleu', color:'#00f', price:80},
-  {id:'vert', name:'Cyber', color:'#0f0', price:150},
-  {id:'violet', name:'Violet', color:'#a0f', price:300},
-  {id:'or', name:'Or', color:'#ffd700', price:600}
+  {id:'classique', name:'Classique', color:'#ffeb3b', price:0},
+  {id:'rouge', name:'Rouge Néon', color:'#ff1744', price:40},
+  {id:'bleu', name:'Bleu Électrique', color:'#00e5ff', price:90},
+  {id:'vert', name:'Cyber Vert', color:'#00ff41', price:160},
+  {id:'violet', name:'Violet Toxique', color:'#d500f9', price:350},
+  {id:'or', name:'Or Légendaire', color:'#ffd700', price:700}
 ];
 
-document.getElementById('coins').textContent = coins;
-
+// Joystick (mobile)
 const joy = document.getElementById('joystick');
 const knob = document.getElementById('knob');
 let joyTouchId = null;
 
-joy.addEventListener('touchstart', e => {
-  e.preventDefault();
-  joyTouchId = e.changedTouches[0].identifier;
-  joy.style.display = 'block';
-});
-
+joy.addEventListener('touchstart', e => { e.preventDefault(); joyTouchId = e.changedTouches[0].identifier; joy.style.display = 'block'; });
 joy.addEventListener('touchmove', e => {
   e.preventDefault();
   for (let touch of e.changedTouches) {
     if (touch.identifier === joyTouchId) {
       const rect = joy.getBoundingClientRect();
-      const cx = rect.left + 60;
-      const cy = rect.top + 60;
-      let dx = touch.clientX - cx;
-      let dy = touch.clientY - cy;
+      const cx = rect.left + 70, cy = rect.top + 70;
+      let dx = touch.clientX - cx, dy = touch.clientY - cy;
       let dist = Math.hypot(dx, dy);
-      let maxDist = 60;
-      if (dist > maxDist) { dx *= maxDist/dist; dy *= maxDist/dist; }
-      knob.style.left = (30 + dx) + 'px';
-      knob.style.top = (30 + dy) + 'px';
-      if (Math.abs(dx) > 30) {
-        let target = player.lane + (dx > 0 ? 1 : -1);
-        if (target >= 0 && target <= 2) player.lane = target;
-      }
+      if (dist > 70) { dx *= 70/dist; dy *= 70/dist; }
+      knob.style.left = (35 + dx) + 'px';
+      knob.style.top = (35 + dy) + 'px';
+      if (Math.abs(dx) > 35) player.lane += dx > 0 ? 1 : -1;
+      player.lane = Math.max(0, Math.min(2, player.lane));
     }
   }
 });
-
 joy.addEventListener('touchend', e => {
   e.preventDefault();
-  for (let touch of e.changedTouches) {
-    if (touch.identifier === joyTouchId) {
-      joyTouchId = null;
-      joy.style.display = 'none';
-      knob.style.left = '30px';
-      knob.style.top = '30px';
-    }
+  if (e.changedTouches[0]?.identifier === joyTouchId) {
+    joyTouchId = null; joy.style.display = 'none';
+    knob.style.left = knob.style.top = '35px';
   }
 });
 
-document.getElementById('jumpBtn').addEventListener('touchstart', e => {
+// Saut (mobile + PC clic)
+document.getElementById('jumpBtn').addEventListener('pointerdown', e => {
   e.preventDefault();
-  if (player.y + player.h >= c.height - 100 && player.vy === 0) {
-    player.vy = -15;
+  if (player.y + player.h >= c.height - 120 && player.vy === 0) {
+    player.vy = -17;
   }
 });
 
+// Contrôles clavier
+document.addEventListener('keydown', e => {
+  if (gameOver) return;
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    e.preventDefault();
+    if (player.y + player.h >= c.height - 120 && player.vy === 0) player.vy = -17;
+  }
+  if (e.code === 'ArrowLeft' && player.lane > 0) player.lane--;
+  if (e.code === 'ArrowRight' && player.lane < 2) player.lane++;
+});
+
+// Shop
 const shopBtn = document.getElementById('shopBtn');
 const shop = document.getElementById('shop');
 const skinsDiv = document.getElementById('skins');
@@ -133,14 +191,17 @@ function updateShop() {
   skinName.textContent = cur.name;
   skinsDiv.innerHTML = '';
   skins.forEach(s => {
-    let btnText = s.id === currentSkin ? '(Équipé)' : s.price === 0 ? 'Gratuit' : coins >= s.price ? `<button onclick="buy('${s.id}')">Acheter ${s.price}</button>` : `Bloqué (${s.price})`;
-    skinsDiv.innerHTML += `<p style="color:${s.color}">${s.name} ${btnText}</p>`;
+    let status = s.id === currentSkin ? '(Équipé)' :
+                 s.price === 0 ? 'Gratuit' :
+                 coins >= s.price ? `<button onclick="buy('${s.id}')">Acheter ${s.price}</button>` :
+                 `Bloqué (${s.price})`;
+    skinsDiv.innerHTML += `<p style="color:${s.color}; font-size:18px;">${s.name} ${status}</p>`;
   });
 }
 
 window.buy = id => {
   const s = skins.find(s => s.id === id);
-  if (coins >= s.price) {
+  if (coins >= s.price && s.price > 0) {
     coins -= s.price;
     localStorage.setItem('nn_coins', coins);
     currentSkin = id;
@@ -151,60 +212,124 @@ window.buy = id => {
   }
 };
 
+// Game loop
 function loop() {
   if (gameOver) return;
 
-  ctx.clearRect(0,0,c.width,c.height);
+  // Fond dégradé animé
+  const grad = ctx.createLinearGradient(0,0,0,c.height);
+  grad.addColorStop(0, '#0a001a');
+  grad.addColorStop(0.4 + Math.sin(Date.now()*0.0005)*0.1, '#1a0033');
+  grad.addColorStop(1, '#000');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,c.width,c.height);
+
+  // Scroll
+  scrollOffset += speed;
 
   ctx.save();
-  ctx.translate(-scrollOffset % 400, 0);
+  ctx.translate(-scrollOffset % 500, 0);
 
-  ctx.fillStyle = '#111';
-  ctx.fillRect(0, c.height - 100, c.width*10, 100);
-
-  if (Date.now() - lastGen > 1000 / speed) {
-    lastGen = Date.now();
-    obstacles.push({x: c.width + scrollOffset + 100, y: c.height - 150, w: 60, h: 150});
-    if (Math.random() > 0.3) collectibles.push({x: c.width + scrollOffset + 250 + Math.random()*300, y: c.height - 200 - Math.random()*120, r: 18});
+  // Sol stylé
+  ctx.fillStyle = '#222';
+  ctx.fillRect(0, c.height - 120, c.width*10, 120);
+  ctx.fillStyle = '#444';
+  for (let i = 0; i < 20; i++) {
+    ctx.fillRect(i*100 + (scrollOffset*0.3 % 100), c.height - 120, 50, 10);
   }
 
+  // Génération
+  if (Date.now() - lastGen > 800 / speed) {
+    lastGen = Date.now();
+    if (Math.random() < 0.8) {
+      let lane = Math.floor(Math.random() * 3);
+      let h = 100 + Math.random()*60;
+      obstacles.push({
+        x: c.width + scrollOffset + 100 + Math.random()*300,
+        y: c.height - 120 - h,
+        w: 70,
+        h: h,
+        color: '#c00'
+      });
+    }
+    if (Math.random() < 0.6) {
+      collectibles.push({
+        x: c.width + scrollOffset + 200 + Math.random()*400,
+        y: c.height - 180 - Math.random()*180,
+        r: 22
+      });
+    }
+  }
+
+  // Update joueur
   player.y += player.vy;
   player.vy += gravity;
-  if (player.y + player.h > c.height - 100) {
-    player.y = c.height - 100 - player.h;
+  if (player.y + player.h > c.height - 120) {
+    player.y = c.height - 120 - player.h;
     player.vy = 0;
   }
-  player.x += (lanes[player.lane] - player.x) * 0.18;
+  player.x += (lanes[player.lane] - player.x) * 0.22;
 
-  ctx.fillStyle = skins.find(s => s.id === player.skin)?.color || '#ff0';
-  ctx.fillRect(player.x, player.y, player.w, player.h);
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(player.x + 15, player.y + 15, 8, 8);
+  // Draw joueur + glow
+  const skinColor = skins.find(s => s.id === player.skin)?.color || '#ffeb3b';
+  ctx.shadowColor = skinColor;
+  ctx.shadowBlur = 25;
+  ctx.fillStyle = skinColor;
+  ctx.fillRect(player.x - 5, player.y - 5, player.w + 10, player.h + 10);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(player.x + 18, player.y + 20, 12, 12); // œil
 
-  ctx.fillStyle = '#c00';
-  obstacles.forEach(o => ctx.fillRect(o.x - scrollOffset, o.y, o.w, o.h));
+  // Obstacles stylés
+  obstacles.forEach(o => {
+    ctx.fillStyle = o.color;
+    ctx.fillRect(o.x - scrollOffset, o.y, o.w, o.h);
+    ctx.strokeStyle = '#ff5252';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(o.x - scrollOffset + 4, o.y + 4, o.w - 8, o.h - 8);
+  });
 
-  ctx.fillStyle = '#ff0';
-  collectibles.forEach(c => {
+  // Pièces + particules
+  collectibles.forEach(co => {
+    ctx.fillStyle = '#ffeb3b';
     ctx.beginPath();
-    ctx.arc(c.x - scrollOffset, c.y, c.r, 0, Math.PI*2);
+    ctx.arc(co.x - scrollOffset, co.y, co.r, 0, Math.PI*2);
     ctx.fill();
-    ctx.strokeStyle = '#ff8';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#fff176';
+    ctx.lineWidth = 5;
     ctx.stroke();
   });
+
+  // Particules (sur collect)
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = `rgba(255,235,59,${p.life})`;
+    ctx.fillRect(p.x - scrollOffset, p.y, 6, 6);
+    p.x += p.vx; p.y += p.vy; p.life -= 0.03;
+  });
+  ctx.globalAlpha = 1;
 
   ctx.restore();
 
   score += 1;
   document.getElementById('score').textContent = score;
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem('nn_high', highScore);
+    document.getElementById('highScore').textContent = highScore;
+  }
 
+  // Collisions
   for (let o of obstacles) {
-    if (player.x < o.x - scrollOffset + o.w && player.x + player.w > o.x - scrollOffset &&
-        player.y < o.y + o.h && player.y + player.h > o.y) {
+    if (player.x + player.w > o.x - scrollOffset &&
+        player.x < o.x - scrollOffset + o.w &&
+        player.y + player.h > o.y &&
+        player.y < o.y + o.h) {
       gameOver = true;
       document.getElementById('gameOver').style.display = 'block';
-      setTimeout(() => location.reload(), 1500);
+      document.getElementById('finalScore').textContent = score;
+      document.getElementById('restartBtn').style.display = 'block';
     }
   }
 
@@ -212,26 +337,45 @@ function loop() {
     let co = collectibles[i];
     let dx = player.x + player.w/2 - (co.x - scrollOffset);
     let dy = player.y + player.h/2 - co.y;
-    if (Math.hypot(dx, dy) < 45) {
+    if (Math.hypot(dx, dy) < 50) {
       coins += 1;
       localStorage.setItem('nn_coins', coins);
       document.getElementById('coins').textContent = coins;
+      // Particules explosion
+      for (let k = 0; k < 12; k++) {
+        particles.push({
+          x: co.x, y: co.y,
+          vx: (Math.random()-0.5)*12,
+          vy: (Math.random()-0.5)*12 - 4,
+          life: 1
+        });
+      }
       collectibles.splice(i,1);
     }
   }
 
-  scrollOffset += speed;
-  speed += 0.0015;
+  // Nettoyage
+  obstacles = obstacles.filter(o => o.x - scrollOffset > -100);
+  collectibles = collectibles.filter(co => co.x - scrollOffset > -100);
+
+  speed += 0.0012;
 
   requestAnimationFrame(loop);
 }
 
+// Restart
+document.getElementById('restartBtn').onclick = () => location.reload();
+
+// Démarrage
+updateShop();
 loop();
 
+// Resize
 window.addEventListener('resize', () => {
   c.width = window.innerWidth;
   c.height = window.innerHeight;
-  lanes = [c.width*0.25, c.width*0.5, c.width*0.75];
+  lanes = [c.width*0.22, c.width*0.5, c.width*0.78];
+  player.y = c.height - 200;
 });
 </script>
 </body>
