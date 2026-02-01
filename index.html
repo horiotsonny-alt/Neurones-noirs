@@ -103,4 +103,134 @@
 
 <script>
 let liberte = localStorage.getItem('nn_liberte') ? parseInt(localStorage.getItem('nn_liberte')) : 0;
-let profondeur = localStorage.getItem('nn_profondeur') ? parseInt(localStorage.getItem('
+let profondeur = localStorage.getItem('nn_profondeur') ? parseInt(localStorage.getItem('nn_profondeur')) : 1;
+
+const audio = {
+  ambiance: document.getElementById('ambiance'),
+  click: document.getElementById('click'),
+  good: document.getElementById('good'),
+  bad: document.getElementById('bad'),
+  win: document.getElementById('win'),
+  lose: document.getElementById('lose')
+};
+
+function play(nom, vol = 0.45) {
+  audio[nom].volume = vol;
+  audio[nom].currentTime = 0;
+  audio[nom].play().catch(() => {});
+}
+
+function updateStats() {
+  document.getElementById('liberte').textContent = liberte;
+  document.getElementById('profondeur').textContent = profondeur;
+  localStorage.setItem('nn_liberte', liberte);
+  localStorage.setItem('nn_profondeur', profondeur);
+}
+
+let currentTypingInterval = null;
+function typeWriter(txt, element, speed = 35) {
+  element.innerHTML = '';
+  let i = 0;
+  if (currentTypingInterval) clearInterval(currentTypingInterval);
+  currentTypingInterval = setInterval(() => {
+    if (i < txt.length) {
+      element.innerHTML += txt.charAt(i);
+      i++;
+    } else {
+      clearInterval(currentTypingInterval);
+    }
+  }, speed);
+}
+
+function skipTyping() {
+  if (currentTypingInterval) {
+    clearInterval(currentTypingInterval);
+    currentTypingInterval = null;
+    // On laisse le texte déjà écrit tel quel
+  }
+}
+
+function scene(texte, options = []) {
+  const textEl = document.getElementById('text');
+  const choicesEl = document.getElementById('choices');
+  choicesEl.innerHTML = '';
+
+  typeWriter(texte, textEl);
+
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.textContent = opt.text;
+    btn.onclick = () => {
+      play('click');
+      if (opt.effet !== undefined) {
+        liberte += opt.effet;
+        if (opt.effet > 0) play('good', 0.35);
+        else play('bad', 0.5);
+        if (Math.abs(opt.effet) >= 12) textEl.classList.add('glitch');
+        setTimeout(() => textEl.classList.remove('glitch'), 600);
+      }
+      profondeur++;
+      updateStats();
+      if (opt.texteSuivant) scene(opt.texteSuivant, opt.choicesSuivants || []);
+    };
+    choicesEl.appendChild(btn);
+  });
+
+  // FINS
+  if (liberte >= 55) {
+    play('win');
+    scene("TU AS TRANSCENDÉ\n\nLes chaînes neuronales explosent. Tu deviens le réseau lui-même.\n\nFIN : L'ASCENSION", []);
+  } else if (liberte <= -55) {
+    play('lose');
+    scene("ABSORPTION COMPLÈTE\n\nIl ne reste plus de toi. Juste l'Ombre qui parle avec ta voix.\n\nFIN : L'ABSORPTION", []);
+  } else if (Math.abs(liberte) <= 5 && profondeur >= 12) {
+    play('good', 0.6);
+    scene("ÉQUILIBRE PARFAIT (caché)\n\nTu n'es ni libre ni esclave. Tu es... autre chose.\nUn silence nouveau naît.\n\nFIN SECRÈTE : LE SILENCE", []);
+  } else if (profondeur >= 18) {
+    scene("TROP PROFOND\n\nTu t'es perdu dans les couches. Plus de retour possible.\n\nFIN : L'ABÎME", []);
+  }
+}
+
+function reset() {
+  liberte = 0;
+  profondeur = 1;
+  localStorage.removeItem('nn_liberte');
+  localStorage.removeItem('nn_profondeur');
+  updateStats();
+  start();
+  play('click');
+}
+
+document.getElementById('skip').style.display = 'none'; // caché par défaut
+
+function start() {
+  play('ambiance', 0.18);
+  updateStats();
+  scene(
+    "Connexion établie…\n\nLa voix résonne, calme et tranchante :\n\n« Sujet. Ton cortex est ouvert. Résisteras-tu... ou te laisseras-tu guider ? »",
+    [
+      { text: "Résister avec violence", effet: -16, texteSuivant: "Choc électrique immédiat.\nLa voix : « Pathétique. Essaye encore. »", choicesSuivants: [
+        { text: "Pousser encore plus fort", effet: -22, texteSuivant: "Ton esprit hurle... puis se tait." },
+        { text: "Changer de tactique", effet: +9, texteSuivant: "Une micro-fissure apparaît dans le protocole." },
+        { text: "Feindre la soumission", effet: +7, texteSuivant: "La voix baisse sa garde... momentanément." }
+      ]},
+      { text: "Coopérer (mais observer)", effet: +14, texteSuivant: "« Sage. Porte 4 ouverte. Avance. »\nDes souvenirs artificiels affluent...", choicesSuivants: [
+        { text: "Absorber les souvenirs", effet: +11, texteSuivant: "Tu découvres des fragments de vérité interdite." },
+        { text: "Les rejeter", effet: -9, texteSuivant: "Rejet détecté. Douleur corrective." },
+        { text: "Les analyser froidement", effet: +16, texteSuivant: "Tu commences à comprendre le code source de l'Ombre..." }
+      ]},
+      { text: "Poser une question piège", effet: +8, texteSuivant: "« Qui te contrôle, toi ? »\nLa voix hésite une fraction de seconde.", choicesSuivants: [
+        { text: "Exploiter l'hésitation", effet: +19, texteSuivant: "Faille détectée ! Tu injectes du doute." },
+        { text: "Insister lourdement", effet: -12, texteSuivant: "Erreur. Punition immédiate." },
+        { text: "Changer de sujet", effet: +6, texteSuivant: "La voix reprend le contrôle... mais tu as gagné du temps." }
+      ]}
+    ]
+  );
+}
+
+// Démarrage
+window.addEventListener('load', start);
+</script>
+
+</body>
+</html>
