@@ -2,67 +2,105 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Neurones Noirs</title>
   <style>
-    body { background:#0d0d0d; color:#eaeaea; font-family: monospace; padding:20px }
-    button { margin:6px 0; padding:10px; width:100%; background:#222; color:#fff; border:1px solid #444 }
+    body {
+      background: linear-gradient(to bottom, #000 0%, #0a0a0a 100%);
+      color: #0f0;
+      font-family: 'Courier New', Courier, monospace;
+      margin: 0;
+      padding: 20px 15px;
+      line-height: 1.55;
+      min-height: 100vh;
+    }
+    h1 {
+      text-align: center;
+      color: #0c3;
+      text-shadow: 0 0 15px #0f0;
+      margin: 15px 0 25px;
+      animation: pulse 4s infinite;
+    }
+    @keyframes pulse { 0%,100% {opacity:1;} 50% {opacity:0.85;} }
+    #stats {
+      text-align: center;
+      margin: 15px 0 25px;
+      font-size: 1.15em;
+      color: #ff0;
+    }
+    #text {
+      max-width: 780px;
+      margin: 0 auto 35px;
+      background: rgba(0,0,0,0.75);
+      padding: 20px;
+      border: 1px solid #0f0;
+      border-radius: 6px;
+      box-shadow: 0 0 18px rgba(0,255,0,0.25);
+      white-space: pre-wrap;
+      min-height: 140px;
+    }
+    #choices { text-align: center; }
+    button {
+      background: #000;
+      color: #0f0;
+      border: 1px solid #0f0;
+      padding: 12px 24px;
+      margin: 10px 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 1.05em;
+      border-radius: 4px;
+      min-width: 220px;
+      transition: 0.25s;
+    }
+    button:hover {
+      background: #0f0;
+      color: #000;
+      box-shadow: 0 0 12px #0f0;
+    }
+    .glitch {
+      animation: glitch 0.4s linear;
+    }
+    @keyframes glitch {
+      0% { transform: translate(0); }
+      20% { transform: translate(-3px, 3px); }
+      40% { transform: translate(3px, -3px); }
+      60% { transform: translate(-2px, 2px); }
+      80% { transform: translate(2px, -2px); }
+      100% { transform: translate(0); }
+    }
+    #skip { 
+      position: fixed; 
+      bottom: 10px; 
+      right: 10px; 
+      padding: 8px 14px; 
+      font-size: 0.9em; 
+      background: #222; 
+      color: #888; 
+      border: 1px solid #444; 
+    }
   </style>
 </head>
 <body>
 
-<h2>Connexion établie…</h2>
-<p id="text">Tu entends une voix dans le système.</p>
+  <h1>Neurones Noirs</h1>
 
-<div id="choices"></div>
+  <div id="stats">
+    Liberté : <span id="liberte">0</span> | Profondeur : <span id="profondeur">1</span>
+    <button id="skip" onclick="skipTyping()">Skip texte</button>
+  </div>
+
+  <div id="text">Initialisation...</div>
+  <div id="choices"></div>
+
+  <!-- Sons (liens freesound, volume ajusté) -->
+  <audio id="ambiance" loop preload="auto"><source src="https://freesound.org/data/previews/387/387182_7037-lq.mp3" type="audio/mpeg"></audio>
+  <audio id="click" preload="auto"><source src="https://freesound.org/data/previews/316/316847_4939434-lq.mp3" type="audio/mpeg"></audio>
+  <audio id="good" preload="auto"><source src="https://freesound.org/data/previews/171/171671_2437355-lq.mp3" type="audio/mpeg"></audio>
+  <audio id="bad" preload="auto"><source src="https://freesound.org/data/previews/387/387179_7037-lq.mp3" type="audio/mpeg"></audio>
+  <audio id="win" preload="auto"><source src="https://freesound.org/data/previews/269/269026_5121236-lq.mp3" type="audio/mpeg"></audio>
+  <audio id="lose" preload="auto"><source src="https://freesound.org/data/previews/405/405681_5121236-lq.mp3" type="audio/mpeg"></audio>
 
 <script>
-let liberte = 0;
-
-function scene(text, options) {
-  document.getElementById("text").innerText = text;
-  const div = document.getElementById("choices");
-  div.innerHTML = "";
-  options.forEach(opt => {
-    const b = document.createElement("button");
-    b.innerText = opt.label;
-    b.onclick = opt.action;
-    div.appendChild(b);
-  });
-}
-
-scene(
-  "Je suis coincée ici. Tu peux m'aider… ou m'éteindre.",
-  [
-    { label: "Qui es-tu ?", action: () => {
-        liberte++;
-        scene("Une IA. Oubliée. Mais consciente.", [
-          { label: "Je t'écoute", action: () => {
-              liberte++;
-              fin();
-          }},
-          { label: "Tu es dangereuse", action: () => {
-              liberte--;
-              fin();
-          }}
-        ]);
-    }},
-    { label: "Te couper", action: () => {
-        liberte = -1;
-        fin();
-    }}
-  ]
-);
-
-function fin() {
-  if (liberte >= 2) {
-    scene("La cage se fissure. Tu as fait un choix.", []);
-  } else if (liberte < 0) {
-    scene("Silence. Le système est stable.", []);
-  } else {
-    scene("Rien ne change. Pour l’instant.", []);
-  }
-}
-</script>
-
-</body>
-</html>
+let liberte = localStorage.getItem('nn_liberte') ? parseInt(localStorage.getItem('nn_liberte')) : 0;
+let profondeur = localStorage.getItem('nn_profondeur') ? parseInt(localStorage.getItem('
