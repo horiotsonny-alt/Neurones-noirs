@@ -6,77 +6,54 @@
   <title>Neurones Noirs – Run</title>
   <script src="https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.min.js"></script>
   <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: #000;
-      font-family: Arial, Helvetica, sans-serif;
-      touch-action: none;
-      user-select: none;
-    }
+    body { margin:0; overflow:hidden; background:#000; font-family:Arial,sans-serif; touch-action:none; user-select:none; }
     #ui {
-      position: absolute;
-      top: 10px;
-      left: 15px;
-      color: white;
-      font-size: 24px;
-      font-weight: bold;
-      text-shadow: 0 0 6px black, 0 0 12px black;
-      pointer-events: none;
-      z-index: 10;
+      position:absolute; top:10px; left:15px; color:white; font-size:24px; font-weight:bold;
+      text-shadow:0 0 6px black, 0 0 12px black; pointer-events:none; z-index:10;
     }
+    #shopBtn {
+      position:absolute; top:10px; right:15px; padding:8px 16px; background:#3366ff; color:white;
+      border:none; border-radius:8px; font-size:20px; cursor:pointer; z-index:10;
+      box-shadow:0 0 10px #3366ff;
+    }
+    #shop {
+      position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      background:rgba(0,0,0,0.9); border:3px solid #00ff88; border-radius:12px;
+      color:#00ff88; padding:25px; max-width:340px; text-align:center;
+      display:none; z-index:25; box-shadow:0 0 30px #00ff88 inset;
+    }
+    #shop button {
+      margin:8px; padding:10px 20px; background:#00ff88; color:black;
+      border:none; border-radius:6px; cursor:pointer; font-size:16px;
+    }
+    #closeShop { background:#ff4444; color:white; }
     #gameOver {
-      position: absolute;
-      inset: 0;
-      background: rgba(0,0,0,0.85);
-      color: #ff4444;
-      font-size: 80px;
-      font-weight: bold;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-shadow: 0 0 15px black;
-      z-index: 20;
-      display: none;
+      position:absolute; inset:0; background:rgba(0,0,0,0.85); color:#ff4444; font-size:80px; font-weight:bold;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      text-shadow:0 0 15px black; z-index:20; display:none;
     }
     #gameOver button {
-      margin-top: 40px;
-      padding: 16px 60px;
-      font-size: 36px;
-      background: #22ff44;
-      color: black;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      box-shadow: 0 0 20px #22ff44;
+      margin-top:40px; padding:16px 60px; font-size:36px; background:#22ff44; color:black;
+      border:none; border-radius:12px; cursor:pointer; box-shadow:0 0 20px #22ff44;
     }
     #jumpBtn {
-      position: fixed;
-      bottom: 50px;
-      right: 50px;
-      width: 110px;
-      height: 110px;
-      background: rgba(255,140,0,0.75);
-      border: none;
-      border-radius: 999px;
-      color: white;
-      font-size: 60px;
-      font-weight: bold;
-      z-index: 15;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.6);
-      touch-action: manipulation;
+      position:fixed; bottom:50px; right:50px; width:110px; height:110px;
+      background:rgba(255,140,0,0.75); border:none; border-radius:999px; color:white;
+      font-size:60px; font-weight:bold; z-index:15; box-shadow:0 8px 25px rgba(0,0,0,0.6);
+      touch-action:manipulation;
     }
-    #jumpBtn:active {
-      transform: scale(0.92);
-      background: rgba(255,180,60,0.95);
-    }
+    #jumpBtn:active { transform:scale(0.92); background:rgba(255,180,60,0.95); }
   </style>
 </head>
 <body>
 
-<div id="ui">
-  Score: <span id="score">0</span>  –  Coins: <span id="coins">0</span>
+<div id="ui">Score: <span id="score">0</span> – Coins: <span id="coins">0</span></div>
+<button id="shopBtn">Shop</button>
+
+<div id="shop">
+  <h2>Shop Skins</h2>
+  <div id="skinsList"></div>
+  <button id="closeShop">Fermer</button>
 </div>
 
 <div id="gameOver">
@@ -87,10 +64,6 @@
 <button id="jumpBtn">↑</button>
 
 <script>
-// ────────────────────────────────────────────────
-// Jeu style Subway Surfers – version simplifiée & corrigée
-// ────────────────────────────────────────────────
-
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x220033);
 scene.fog = new THREE.FogExp2(0x110022, 0.002);
@@ -103,53 +76,57 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
-// Lumières
 scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 const sun = new THREE.DirectionalLight(0xffeecc, 1.3);
 sun.position.set(20, 40, 15);
 sun.castShadow = true;
 scene.add(sun);
 
-// Variables globales
+// Variables
 let score = 0;
 let coins = parseInt(localStorage.getItem("nn_coins") || "0");
+let currentSkin = localStorage.getItem("nn_skin") || "0xffdd00";
 let speed = 0.22;
 let gameRunning = true;
 
 document.getElementById("coins").textContent = coins;
 
-// ──── Joueur ────────────────────────────────────────
+// Joueur
 const playerGroup = new THREE.Group();
 scene.add(playerGroup);
 
-const bodyGeo = new THREE.BoxGeometry(1.3, 1.8, 1.4);
-const bodyMat = new THREE.MeshStandardMaterial({color: 0xffdd00});
-const body = new THREE.Mesh(bodyGeo, bodyMat);
+const playerMaterial = new THREE.MeshStandardMaterial({color: parseInt(currentSkin)});
+
+const body = new THREE.Mesh(
+  new THREE.BoxGeometry(1.3, 1.8, 1.4),
+  playerMaterial
+);
 body.position.y = 0.9;
 body.castShadow = true;
 playerGroup.add(body);
 
-const headGeo = new THREE.SphereGeometry(0.65, 16, 16);
-const head = new THREE.Mesh(headGeo, bodyMat);
+const head = new THREE.Mesh(
+  new THREE.SphereGeometry(0.65, 16, 16),
+  playerMaterial
+);
 head.position.y = 2.0;
 playerGroup.add(head);
 
 playerGroup.position.set(0, 0, 0);
 
-let currentLane = 0;          // -1 | 0 | 1
+let currentLane = 0;
 let targetLane = 0;
 let velocityY = 0;
 let isJumping = false;
 
-// ──── Voies ─────────────────────────────────────────
+// Voies
 const LANE_POS = [-3.5, 0, 3.5];
 const trackPieces = [];
-const trackLength = 40;
 
-for (let i = 0; i < trackLength; i++) {
+for (let i = 0; i < 40; i++) {
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(18, 12),
-    new THREE.MeshStandardMaterial({color: 0x222233, roughness: 0.9})
+    new THREE.MeshStandardMaterial({color: 0x222233})
   );
   floor.rotation.x = -Math.PI / 2;
   floor.position.z = -i * 12;
@@ -157,7 +134,6 @@ for (let i = 0; i < trackLength; i++) {
   scene.add(floor);
   trackPieces.push(floor);
 
-  // Rails
   [-1, 1].forEach(side => {
     const rail = new THREE.Mesh(
       new THREE.BoxGeometry(1.2, 0.4, 12.5),
@@ -169,52 +145,86 @@ for (let i = 0; i < trackLength; i++) {
   });
 }
 
-// ──── Obstacles (trains / barrières) ─────────────────
+// Obstacles & pièces
 const obstacles = [];
-
-function spawnObstacle() {
-  const lane = Math.floor(Math.random() * 3) - 1;
-  const isTall = Math.random() < 0.4; // ~40% de hauts (à esquiver latéralement)
-
-  const w = isTall ? 4.5 : 3.8;
-  const h = isTall ? 5.5 : 2.8;
-  const d = 5 + Math.random() * 3;
-
-  const obs = new THREE.Mesh(
-    new THREE.BoxGeometry(w, h, d),
-    new THREE.MeshStandardMaterial({color: 0xdd0000, emissive: 0x880000})
-  );
-  obs.position.set(LANE_POS[lane + 1], h/2, -80 - Math.random() * 60);
-  obs.castShadow = true;
-  scene.add(obs);
-
-  obstacles.push({mesh: obs, tall: isTall});
-}
-
-// ──── Pièces ────────────────────────────────────────
 const collectibles = [];
 
+function spawnObstacle() {
+  if (!gameRunning) return;
+  const lane = Math.floor(Math.random() * 3) - 1;
+  const tall = Math.random() < 0.4;
+
+  const obs = new THREE.Mesh(
+    new THREE.BoxGeometry(tall ? 4.5 : 3.8, tall ? 5.5 : 2.8, 5),
+    new THREE.MeshStandardMaterial({color: 0xdd0000, emissive: 0x880000})
+  );
+  obs.position.set(LANE_POS[lane + 1], tall ? 2.75 : 1.4, -80 - Math.random() * 60);
+  obs.castShadow = true;
+  scene.add(obs);
+  obstacles.push({mesh: obs, tall});
+}
+
 function spawnCoin() {
+  if (!gameRunning) return;
   const lane = Math.floor(Math.random() * 3) - 1;
   const coin = new THREE.Mesh(
     new THREE.SphereGeometry(0.9, 16, 16),
-    new THREE.MeshStandardMaterial({
-      color: 0xffff00,
-      emissive: 0xffff44,
-      emissiveIntensity: 1.2
-    })
+    new THREE.MeshStandardMaterial({color: 0xffff00, emissive: 0xffff44, emissiveIntensity: 1.2})
   );
   coin.position.set(LANE_POS[lane + 1], 2.5 + Math.random()*1.5, -90 - Math.random()*80);
   scene.add(coin);
   collectibles.push(coin);
 }
 
-// ──── Contrôles ─────────────────────────────────────
-const jumpBtn = document.getElementById("jumpBtn");
-jumpBtn.addEventListener("pointerdown", e => {
-  e.preventDefault();
+// Shop
+const skins = [
+  {name: "Jaune", color: 0xffdd00, price: 0},
+  {name: "Rouge", color: 0xff4444, price: 50},
+  {name: "Bleu", color: 0x4488ff, price: 100},
+  {name: "Vert", color: 0x44ff88, price: 200}
+];
+
+const shopBtn = document.getElementById("shopBtn");
+const shopDiv = document.getElementById("shop");
+const skinsList = document.getElementById("skinsList");
+const closeShop = document.getElementById("closeShop");
+
+shopBtn.onclick = () => {
   if (!gameRunning) return;
-  if (!isJumping) {
+  shopDiv.style.display = "block";
+  skinsList.innerHTML = "";
+  skins.forEach((s, i) => {
+    const owned = s.price === 0 || localStorage.getItem("nn_skin_" + i) === "true";
+    const equipped = parseInt(currentSkin) === s.color;
+    let btn = equipped ? "Équipé" : owned ? "Équiper" : `Acheter (${s.price})`;
+    skinsList.innerHTML += `<p>${s.name} <button onclick="equipOrBuy(${i})">${btn}</button></p>`;
+  });
+};
+
+closeShop.onclick = () => shopDiv.style.display = "none";
+
+window.equipOrBuy = function(idx) {
+  const s = skins[idx];
+  if (s.price === 0 || localStorage.getItem("nn_skin_" + idx) === "true") {
+    currentSkin = s.color.toString(16);
+    localStorage.setItem("nn_skin", currentSkin);
+    playerMaterial.color.setHex(s.color);
+  } else if (coins >= s.price) {
+    coins -= s.price;
+    localStorage.setItem("nn_coins", coins);
+    localStorage.setItem("nn_skin_" + idx, "true");
+    document.getElementById("coins").textContent = coins;
+    currentSkin = s.color.toString(16);
+    localStorage.setItem("nn_skin", currentSkin);
+    playerMaterial.color.setHex(s.color);
+  }
+  shopBtn.click(); // refresh shop
+};
+
+// Contrôles (comme avant)
+document.getElementById("jumpBtn").addEventListener("pointerdown", e => {
+  e.preventDefault();
+  if (gameRunning && !isJumping) {
     velocityY = 0.38;
     isJumping = true;
   }
@@ -229,52 +239,45 @@ document.addEventListener("keydown", e => {
       isJumping = true;
     }
   }
-  if (e.code === "ArrowLeft" && currentLane > -1) targetLane--;
-  if (e.code === "ArrowRight" && currentLane < 1)  targetLane++;
+  if (e.code === "ArrowLeft" && targetLane > -1) targetLane--;
+  if (e.code === "ArrowRight" && targetLane < 1) targetLane++;
 });
 
-// Swipe mobile
 let touchStartX = 0;
 document.addEventListener("touchstart", e => {
-  if (e.touches.length === 1) touchStartX = e.touches[0].clientX;
-}, {passive: false});
+  touchStartX = e.touches[0].clientX;
+}, {passive:false});
 
 document.addEventListener("touchend", e => {
-  if (e.changedTouches.length !== 1) return;
   const dx = e.changedTouches[0].clientX - touchStartX;
   if (Math.abs(dx) > 60) {
-    if (dx > 0 && currentLane < 1) targetLane++;
-    if (dx < 0 && currentLane > -1) targetLane--;
+    if (dx > 0 && targetLane < 1) targetLane++;
+    if (dx < 0 && targetLane > -1) targetLane--;
   }
-}, {passive: false});
+}, {passive:false});
 
-// ──── Boucle principale ──────────────────────────────
+// Boucle (comme avant, sans changements majeurs)
 function animate() {
-  if (!gameRunning) return;
+  if (!gameRunning) return requestAnimationFrame(animate);
 
   requestAnimationFrame(animate);
 
-  const dt = 1 / 60; // approximation stable
+  const move = speed;
 
-  // Déplacement latéral fluide
   currentLane += (targetLane - currentLane) * 0.28;
   playerGroup.position.x = THREE.MathUtils.lerp(playerGroup.position.x, LANE_POS[Math.round(currentLane)], 0.22);
 
-  // Saut / gravité
   velocityY -= 0.022;
   playerGroup.position.y += velocityY;
-
   if (playerGroup.position.y <= 0) {
     playerGroup.position.y = 0;
     velocityY = 0;
     isJumping = false;
   }
 
-  // Défilement du monde
-  const move = speed * 60 * dt;
   trackPieces.forEach(p => {
     p.position.z += move;
-    if (p.position.z > 50) p.position.z -= trackLength * 12;
+    if (p.position.z > 50) p.position.z -= 480;
   });
 
   obstacles.forEach((o, i) => {
@@ -294,13 +297,11 @@ function animate() {
     }
   });
 
-  // Collision
   let crashed = false;
   for (let o of obstacles) {
     const dx = Math.abs(playerGroup.position.x - o.mesh.position.x);
     const dy = Math.abs(playerGroup.position.y - o.mesh.position.y);
     const dz = Math.abs(playerGroup.position.z - o.mesh.position.z);
-
     if (dx < 2.6 && dz < 3.2 && dy < (o.tall ? 4 : 2.5)) {
       crashed = true;
       break;
@@ -312,14 +313,13 @@ function animate() {
     document.getElementById("gameOver").style.display = "flex";
   }
 
-  // Ramassage pièces
   for (let i = collectibles.length - 1; i >= 0; i--) {
     const c = collectibles[i];
-    const dx = Math.abs(playerGroup.position.x - c.position.x);
-    const dy = Math.abs(playerGroup.position.y - c.position.y);
-    const dz = Math.abs(playerGroup.position.z - c.position.z);
-
-    if (dx < 1.8 && dy < 2.5 && dz < 1.8) {
+    if (Math.hypot(
+      playerGroup.position.x - c.position.x,
+      playerGroup.position.y - c.position.y,
+      playerGroup.position.z - c.position.z
+    ) < 2.5) {
       coins++;
       localStorage.setItem("nn_coins", coins);
       document.getElementById("coins").textContent = coins;
@@ -328,12 +328,10 @@ function animate() {
     }
   }
 
-  // Score & vitesse
   score += speed * 18;
   document.getElementById("score").textContent = Math.floor(score);
   speed += 0.00008;
 
-  // Caméra suit le joueur (style Subway Surfers)
   camera.position.x = playerGroup.position.x * 0.3;
   camera.position.y = playerGroup.position.y + 5;
   camera.position.z = playerGroup.position.z + 12;
@@ -342,29 +340,23 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-// Génération périodique
-setInterval(() => {
-  if (gameRunning && Math.random() < 0.75) spawnObstacle();
-}, 1400);
-
-setInterval(() => {
-  if (gameRunning) spawnCoin();
-}, 2200);
+// Spawns
+setInterval(() => gameRunning && Math.random() < 0.75 && spawnObstacle(), 1400);
+setInterval(() => gameRunning && spawnCoin(), 2200);
 
 // Restart
 document.getElementById("restart").onclick = () => {
   gameRunning = true;
   score = 0;
   speed = 0.22;
-  currentLane = targetLane = 0;
+  targetLane = currentLane = 0;
   velocityY = 0;
   isJumping = false;
   playerGroup.position.set(0, 0, 0);
 
   obstacles.forEach(o => scene.remove(o.mesh));
   collectibles.forEach(c => scene.remove(c));
-  obstacles.length = 0;
-  collectibles.length = 0;
+  obstacles.length = collectibles.length = 0;
 
   document.getElementById("gameOver").style.display = "none";
   document.getElementById("score").textContent = "0";
@@ -372,14 +364,12 @@ document.getElementById("restart").onclick = () => {
   animate();
 };
 
-// Resize
 window.addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
 
-// Démarrage
 animate();
 </script>
 </body>
