@@ -39,7 +39,6 @@
   <button id="jumpBtn">↑</button>
 
 <script>
-// === CONFIG ===
 const c = document.getElementById('c');
 const ctx = c.getContext('2d');
 c.width = window.innerWidth;
@@ -57,7 +56,6 @@ let obstacles = [];
 let collectibles = [];
 let lastGen = 0;
 
-// Skins
 const skins = [
   {id:'classique', name:'Classique', color:'#ff0', price:0},
   {id:'rouge', name:'Rouge', color:'#f00', price:30},
@@ -67,10 +65,8 @@ const skins = [
   {id:'or', name:'Or', color:'#ffd700', price:600}
 ];
 
-// Update UI
 document.getElementById('coins').textContent = coins;
 
-// Joystick
 const joy = document.getElementById('joystick');
 const knob = document.getElementById('knob');
 let joyTouchId = null;
@@ -95,10 +91,9 @@ joy.addEventListener('touchmove', e => {
       if (dist > maxDist) { dx *= maxDist/dist; dy *= maxDist/dist; }
       knob.style.left = (30 + dx) + 'px';
       knob.style.top = (30 + dy) + 'px';
-
       if (Math.abs(dx) > 30) {
-        let targetLane = player.lane + (dx > 0 ? 1 : -1);
-        if (targetLane >= 0 && targetLane <= 2) player.lane = targetLane;
+        let target = player.lane + (dx > 0 ? 1 : -1);
+        if (target >= 0 && target <= 2) player.lane = target;
       }
     }
   }
@@ -116,7 +111,6 @@ joy.addEventListener('touchend', e => {
   }
 });
 
-// Saut
 document.getElementById('jumpBtn').addEventListener('touchstart', e => {
   e.preventDefault();
   if (player.y + player.h >= c.height - 100 && player.vy === 0) {
@@ -124,7 +118,6 @@ document.getElementById('jumpBtn').addEventListener('touchstart', e => {
   }
 });
 
-// Shop
 const shopBtn = document.getElementById('shopBtn');
 const shop = document.getElementById('shop');
 const skinsDiv = document.getElementById('skins');
@@ -158,49 +151,39 @@ window.buy = id => {
   }
 };
 
-// Game loop
 function loop() {
   if (gameOver) return;
 
   ctx.clearRect(0,0,c.width,c.height);
 
-  // Scroll monde
   ctx.save();
   ctx.translate(-scrollOffset % 400, 0);
 
-  // Sol
   ctx.fillStyle = '#111';
   ctx.fillRect(0, c.height - 100, c.width*10, 100);
 
-  // Obstacles & pièces
   if (Date.now() - lastGen > 1000 / speed) {
     lastGen = Date.now();
-    // Obstacle
     obstacles.push({x: c.width + scrollOffset + 100, y: c.height - 150, w: 60, h: 150});
-    // Pièce
     if (Math.random() > 0.3) collectibles.push({x: c.width + scrollOffset + 250 + Math.random()*300, y: c.height - 200 - Math.random()*120, r: 18});
   }
 
-  // Update joueur
   player.y += player.vy;
   player.vy += gravity;
   if (player.y + player.h > c.height - 100) {
     player.y = c.height - 100 - player.h;
     player.vy = 0;
   }
-  player.x += (lanes[player.lane] - player.x) * 0.18; // smooth
+  player.x += (lanes[player.lane] - player.x) * 0.18;
 
-  // Draw joueur
   ctx.fillStyle = skins.find(s => s.id === player.skin)?.color || '#ff0';
   ctx.fillRect(player.x, player.y, player.w, player.h);
   ctx.fillStyle = '#fff';
-  ctx.fillRect(player.x + 15, player.y + 15, 8, 8); // œil
+  ctx.fillRect(player.x + 15, player.y + 15, 8, 8);
 
-  // Draw obstacles
   ctx.fillStyle = '#c00';
   obstacles.forEach(o => ctx.fillRect(o.x - scrollOffset, o.y, o.w, o.h));
 
-  // Draw collectibles
   ctx.fillStyle = '#ff0';
   collectibles.forEach(c => {
     ctx.beginPath();
@@ -216,7 +199,6 @@ function loop() {
   score += 1;
   document.getElementById('score').textContent = score;
 
-  // Collision obstacle
   for (let o of obstacles) {
     if (player.x < o.x - scrollOffset + o.w && player.x + player.w > o.x - scrollOffset &&
         player.y < o.y + o.h && player.y + player.h > o.y) {
@@ -226,7 +208,6 @@ function loop() {
     }
   }
 
-  // Collectible
   for (let i = collectibles.length - 1; i >= 0; i--) {
     let co = collectibles[i];
     let dx = player.x + player.w/2 - (co.x - scrollOffset);
@@ -247,7 +228,6 @@ function loop() {
 
 loop();
 
-// Resize
 window.addEventListener('resize', () => {
   c.width = window.innerWidth;
   c.height = window.innerHeight;
