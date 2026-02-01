@@ -3,379 +3,615 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Neurones Noirs - Parkour</title>
+  <title>Neurones Noirs - Parkour 3D</title>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.min.js"></script>
   <style>
     body {
-      margin:0; padding:0; background:#000; overflow:hidden; touch-action:none;
-      font-family:Arial, sans-serif; user-select:none;
-    }
-    canvas {
-      display:block; width:100vw; height:100vh;
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #000;
+      touch-action: none;
+      user-select: none;
     }
     #ui {
-      position:fixed; top:10px; left:10px; color:#0ff; font-size:22px; font-weight:bold;
-      z-index:10; text-shadow:0 0 8px #0ff, 0 0 15px #0ff; pointer-events:none;
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      color: #0ff;
+      font-size: 26px;
+      font-weight: bold;
+      text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+      pointer-events: none;
+      z-index: 10;
+    }
+    #highScore {
+      position: absolute;
+      top: 45px;
+      left: 15px;
+      color: #ffd700;
+      font-size: 20px;
+      text-shadow: 0 0 5px #ffd700;
+      pointer-events: none;
+      z-index: 10;
+    }
+    #gameOver {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #f00;
+      font-size: 70px;
+      font-weight: bold;
+      text-align: center;
+      text-shadow: 0 0 20px #f00;
+      display: none;
+      z-index: 15;
+    }
+    #gameOver span {
+      font-size: 40px;
+      color: #ff0;
+      display: block;
+      margin: 20px 0;
+    }
+    #restartBtn {
+      margin-top: 40px;
+      padding: 18px 60px;
+      font-size: 32px;
+      background: #0f0;
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 0 20px #0f0;
     }
     #shopBtn {
-      position:fixed; top:10px; right:10px; padding:10px 20px;
-      background:#00f8; color:#fff; border:none; border-radius:10px; font-size:18px;
-      z-index:10; cursor:pointer; box-shadow:0 0 10px #00f;
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      padding: 10px 20px;
+      background: #00f;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 22px;
+      cursor: pointer;
+      z-index: 10;
+      box-shadow: 0 0 15px #00f;
     }
     #shop {
-      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-      background:rgba(0,0,20,0.92); padding:25px; border:3px solid #0f0;
-      border-radius:15px; color:#0f0; text-align:center; display:none;
-      max-width:340px; z-index:20; box-shadow:0 0 30px #0f0 inset;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.9);
+      padding: 30px;
+      border: 3px solid #0f0;
+      border-radius: 15px;
+      color: #0f0;
+      text-align: center;
+      display: none;
+      z-index: 20;
+      max-width: 400px;
+    }
+    #shop h2 {
+      margin-bottom: 20px;
     }
     #shop button {
-      margin:10px 5px; padding:12px 24px; background:#0f0; color:#000;
-      border:none; border-radius:8px; font-size:16px; cursor:pointer;
-      box-shadow:0 0 10px #0f0;
+      margin: 10px;
+      padding: 12px 24px;
+      background: #0f0;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
     }
-    #closeShop { background:#f44; color:#fff; box-shadow:0 0 10px #f44; }
-    #skinPreview {
-      width:90px; height:90px; margin:15px auto;
-      border:4px solid #0f0; border-radius:50%; box-shadow:0 0 20px #0f0;
-    }
-    #joystick {
-      position:fixed; bottom:50px; left:50px; width:140px; height:140px;
-      background:rgba(255,255,255,0.12); border-radius:50%; z-index:5;
-      touch-action:none; display:none; box-shadow:0 0 20px #0f0 inset;
-    }
-    #knob {
-      width:70px; height:70px; background:rgba(0,255,0,0.45);
-      border-radius:50%; position:absolute; top:35px; left:35px; transition:0.08s;
-      box-shadow:0 0 15px #0f0;
+    #closeShop {
+      background: #f00;
+      color: #fff;
     }
     #jumpBtn {
-      position:fixed; bottom:50px; right:50px; width:100px; height:100px;
-      background:rgba(255,80,0,0.6); border:none; border-radius:50%;
-      color:#fff; font-size:48px; font-weight:bold; z-index:5;
-      touch-action:none; box-shadow:0 0 20px #ff5000;
+      position: fixed;
+      bottom: 60px;
+      right: 60px;
+      width: 110px;
+      height: 110px;
+      background: rgba(255, 100, 0, 0.8);
+      border: none;
+      border-radius: 50%;
+      color: white;
+      font-size: 55px;
+      font-weight: bold;
+      z-index: 5;
+      touch-action: manipulation;
+      box-shadow: 0 0 25px #ff6000;
     }
-    #jumpBtn:active { transform:scale(0.9); background:rgba(255,120,0,0.9); }
-    #gameOver {
-      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-      color:#f00; font-size:60px; font-weight:bold; text-shadow:0 0 15px #f00;
-      z-index:15; pointer-events:none; text-align:center; display:none;
-    }
-    #gameOver span { font-size:32px; color:#ff0; display:block; margin:20px 0; }
-    #restartBtn {
-      margin-top:30px; padding:15px 40px; background:#0f0; color:#000;
-      border:none; border-radius:10px; font-size:24px; cursor:pointer;
-      box-shadow:0 0 15px #0f0; display:none;
+    #jumpBtn:active {
+      transform: scale(0.92);
+      background: rgba(255, 140, 0, 1);
     }
   </style>
 </head>
 <body>
 
-  <canvas id="c"></canvas>
-  <div id="ui">Coins: <span id="coins">0</span>  |  Score: <span id="score">0</span>  |  High: <span id="highScore">0</span></div>
-  <button id="shopBtn">Skins</button>
+  <div id="ui">Coins: <span id="coins">0</span> | Score: <span id="score">0</span></div>
+  <div id="highScore">High: <span id="high">0</span></div>
+  <button id="shopBtn">Shop</button>
 
   <div id="gameOver">
     GAME OVER
-    <span>Score: <span id="finalScore">0</span></span>
+    <span id="finalScore">Score: 0</span>
     <button id="restartBtn">Rejouer</button>
   </div>
 
   <div id="shop">
-    <h2>Skins Disponibles</h2>
-    <div id="skinPreview"></div>
-    <p>Actuel : <span id="skinName">Classique</span></p>
-    <div id="skins"></div>
+    <h2>Skins</h2>
+    <div id="skinsList"></div>
     <button id="closeShop">Fermer</button>
   </div>
 
-  <div id="joystick"><div id="knob"></div></div>
   <button id="jumpBtn">↑</button>
 
+  <!-- Sons -->
+  <audio id="jumpSound" src="https://freesound.org/data/previews/331/331899_3248244-lq.mp3"></audio> <!-- Son saut gratuit -->
+  <audio id="collectSound" src="https://freesound.org/data/previews/270/270404_5004521-lq.mp3"></audio> <!-- Son pièce -->
+  <audio id="crashSound" src="https://freesound.org/data/previews/191/191697_2436353-lq.mp3"></audio> <!-- Son crash -->
+
 <script>
-// === CONFIG ===
-const c = document.getElementById('c');
-const ctx = c.getContext('2d');
-c.width = window.innerWidth;
-c.height = window.innerHeight;
+// ────────────────────────────────────────────────
+// CLASSES MODULAIRES – Améliorées (sons, particules, shop, variété obstacles, highscore)
+// ────────────────────────────────────────────────
 
-let coins = localStorage.getItem('nn_coins') ? +localStorage.getItem('nn_coins') : 0;
-let highScore = localStorage.getItem('nn_high') ? +localStorage.getItem('nn_high') : 0;
-let score = 0;
-let currentSkin = localStorage.getItem('nn_skin') || 'classique';
-let gameOver = false;
-let speed = 5;
-let gravity = 0.75;
-let player = { x: 150, y: c.height - 200, w: 55, h: 90, vy: 0, lane: 1, skin: currentSkin };
-let lanes = [c.width*0.22, c.width*0.5, c.width*0.78];
-let obstacles = [];
-let collectibles = [];
-let particles = [];
-let lastGen = 0;
-let scrollOffset = 0;
+class Game {
+  constructor() {
+    this.scene = null;
+    this.camera = null;
+    this.renderer = null;
+    this.player = null;
+    this.track = null;
+    this.obstacles = [];
+    this.collectibles = [];
+    this.particles = [];
+    this.score = 0;
+    this.highScore = localStorage.getItem('nn_high') ? parseInt(localStorage.getItem('nn_high')) : 0;
+    this.coins = localStorage.getItem('nn_coins') ? parseInt(localStorage.getItem('nn_coins')) : 0;
+    this.currentSkin = localStorage.getItem('nn_skin') || 'default';
+    this.gameOver = false;
+    this.speed = 0.18;
+    this.clock = new THREE.Clock();
 
-// Mise à jour UI
-document.getElementById('coins').textContent = coins;
-document.getElementById('highScore').textContent = highScore;
-
-// Skins
-const skins = [
-  {id:'classique', name:'Classique', color:'#ffeb3b', price:0},
-  {id:'rouge', name:'Rouge Néon', color:'#ff1744', price:40},
-  {id:'bleu', name:'Bleu Électrique', color:'#00e5ff', price:90},
-  {id:'vert', name:'Cyber Vert', color:'#00ff41', price:160},
-  {id:'violet', name:'Violet Toxique', color:'#d500f9', price:350},
-  {id:'or', name:'Or Légendaire', color:'#ffd700', price:700}
-];
-
-// Joystick (mobile)
-const joy = document.getElementById('joystick');
-const knob = document.getElementById('knob');
-let joyTouchId = null;
-
-joy.addEventListener('touchstart', e => { e.preventDefault(); joyTouchId = e.changedTouches[0].identifier; joy.style.display = 'block'; });
-joy.addEventListener('touchmove', e => {
-  e.preventDefault();
-  for (let touch of e.changedTouches) {
-    if (touch.identifier === joyTouchId) {
-      const rect = joy.getBoundingClientRect();
-      const cx = rect.left + 70, cy = rect.top + 70;
-      let dx = touch.clientX - cx, dy = touch.clientY - cy;
-      let dist = Math.hypot(dx, dy);
-      if (dist > 70) { dx *= 70/dist; dy *= 70/dist; }
-      knob.style.left = (35 + dx) + 'px';
-      knob.style.top = (35 + dy) + 'px';
-      if (Math.abs(dx) > 35) player.lane += dx > 0 ? 1 : -1;
-      player.lane = Math.max(0, Math.min(2, player.lane));
-    }
-  }
-});
-joy.addEventListener('touchend', e => {
-  e.preventDefault();
-  if (e.changedTouches[0]?.identifier === joyTouchId) {
-    joyTouchId = null; joy.style.display = 'none';
-    knob.style.left = knob.style.top = '35px';
-  }
-});
-
-// Saut (mobile + PC clic)
-document.getElementById('jumpBtn').addEventListener('pointerdown', e => {
-  e.preventDefault();
-  if (player.y + player.h >= c.height - 120 && player.vy === 0) {
-    player.vy = -17;
-  }
-});
-
-// Contrôles clavier
-document.addEventListener('keydown', e => {
-  if (gameOver) return;
-  if (e.code === 'Space' || e.code === 'ArrowUp') {
-    e.preventDefault();
-    if (player.y + player.h >= c.height - 120 && player.vy === 0) player.vy = -17;
-  }
-  if (e.code === 'ArrowLeft' && player.lane > 0) player.lane--;
-  if (e.code === 'ArrowRight' && player.lane < 2) player.lane++;
-});
-
-// Shop
-const shopBtn = document.getElementById('shopBtn');
-const shop = document.getElementById('shop');
-const skinsDiv = document.getElementById('skins');
-const preview = document.getElementById('skinPreview');
-const skinName = document.getElementById('skinName');
-
-shopBtn.onclick = () => { shop.style.display = 'block'; updateShop(); };
-document.getElementById('closeShop').onclick = () => shop.style.display = 'none';
-
-function updateShop() {
-  const cur = skins.find(s => s.id === currentSkin);
-  preview.style.background = cur.color;
-  skinName.textContent = cur.name;
-  skinsDiv.innerHTML = '';
-  skins.forEach(s => {
-    let status = s.id === currentSkin ? '(Équipé)' :
-                 s.price === 0 ? 'Gratuit' :
-                 coins >= s.price ? `<button onclick="buy('${s.id}')">Acheter ${s.price}</button>` :
-                 `Bloqué (${s.price})`;
-    skinsDiv.innerHTML += `<p style="color:${s.color}; font-size:18px;">${s.name} ${status}</p>`;
-  });
-}
-
-window.buy = id => {
-  const s = skins.find(s => s.id === id);
-  if (coins >= s.price && s.price > 0) {
-    coins -= s.price;
-    localStorage.setItem('nn_coins', coins);
-    currentSkin = id;
-    localStorage.setItem('nn_skin', id);
-    player.skin = id;
-    document.getElementById('coins').textContent = coins;
-    updateShop();
-  }
-};
-
-// Game loop
-function loop() {
-  if (gameOver) return;
-
-  // Fond dégradé animé
-  const grad = ctx.createLinearGradient(0,0,0,c.height);
-  grad.addColorStop(0, '#0a001a');
-  grad.addColorStop(0.4 + Math.sin(Date.now()*0.0005)*0.1, '#1a0033');
-  grad.addColorStop(1, '#000');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0,0,c.width,c.height);
-
-  // Scroll
-  scrollOffset += speed;
-
-  ctx.save();
-  ctx.translate(-scrollOffset % 500, 0);
-
-  // Sol stylé
-  ctx.fillStyle = '#222';
-  ctx.fillRect(0, c.height - 120, c.width*10, 120);
-  ctx.fillStyle = '#444';
-  for (let i = 0; i < 20; i++) {
-    ctx.fillRect(i*100 + (scrollOffset*0.3 % 100), c.height - 120, 50, 10);
+    document.getElementById('coins').textContent = this.coins;
+    document.getElementById('high').textContent = this.highScore;
   }
 
-  // Génération
-  if (Date.now() - lastGen > 800 / speed) {
-    lastGen = Date.now();
-    if (Math.random() < 0.8) {
-      let lane = Math.floor(Math.random() * 3);
-      let h = 100 + Math.random()*60;
-      obstacles.push({
-        x: c.width + scrollOffset + 100 + Math.random()*300,
-        y: c.height - 120 - h,
-        w: 70,
-        h: h,
-        color: '#c00'
-      });
-    }
-    if (Math.random() < 0.6) {
-      collectibles.push({
-        x: c.width + scrollOffset + 200 + Math.random()*400,
-        y: c.height - 180 - Math.random()*180,
-        r: 22
-      });
-    }
+  init() {
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x0a0015);
+    this.scene.fog = new THREE.FogExp2(0x0a0015, 0.0012);
+
+    this.camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 2000);
+    this.camera.position.set(0, 6, 14);
+
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.shadowMap.enabled = true;
+    document.body.appendChild(this.renderer.domElement);
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+    this.scene.add(ambient);
+
+    const dirLight = new THREE.DirectionalLight(0xffccaa, 1.4);
+    dirLight.position.set(15, 30, 10);
+    dirLight.castShadow = true;
+    this.scene.add(dirLight);
+
+    this.player = new Player(this.scene, this.currentSkin);
+    this.track = new Track(this.scene);
+
+    this.setupControls();
+    this.setupSwipe();
+    this.setupShop();
+
+    this.animate();
   }
 
-  // Update joueur
-  player.y += player.vy;
-  player.vy += gravity;
-  if (player.y + player.h > c.height - 120) {
-    player.y = c.height - 120 - player.h;
-    player.vy = 0;
-  }
-  player.x += (lanes[player.lane] - player.x) * 0.22;
-
-  // Draw joueur + glow
-  const skinColor = skins.find(s => s.id === player.skin)?.color || '#ffeb3b';
-  ctx.shadowColor = skinColor;
-  ctx.shadowBlur = 25;
-  ctx.fillStyle = skinColor;
-  ctx.fillRect(player.x - 5, player.y - 5, player.w + 10, player.h + 10);
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = '#000';
-  ctx.fillRect(player.x + 18, player.y + 20, 12, 12); // œil
-
-  // Obstacles stylés
-  obstacles.forEach(o => {
-    ctx.fillStyle = o.color;
-    ctx.fillRect(o.x - scrollOffset, o.y, o.w, o.h);
-    ctx.strokeStyle = '#ff5252';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(o.x - scrollOffset + 4, o.y + 4, o.w - 8, o.h - 8);
-  });
-
-  // Pièces + particules
-  collectibles.forEach(co => {
-    ctx.fillStyle = '#ffeb3b';
-    ctx.beginPath();
-    ctx.arc(co.x - scrollOffset, co.y, co.r, 0, Math.PI*2);
-    ctx.fill();
-    ctx.strokeStyle = '#fff176';
-    ctx.lineWidth = 5;
-    ctx.stroke();
-  });
-
-  // Particules (sur collect)
-  particles = particles.filter(p => p.life > 0);
-  particles.forEach(p => {
-    ctx.globalAlpha = p.life;
-    ctx.fillStyle = `rgba(255,235,59,${p.life})`;
-    ctx.fillRect(p.x - scrollOffset, p.y, 6, 6);
-    p.x += p.vx; p.y += p.vy; p.life -= 0.03;
-  });
-  ctx.globalAlpha = 1;
-
-  ctx.restore();
-
-  score += 1;
-  document.getElementById('score').textContent = score;
-  if (score > highScore) {
-    highScore = score;
-    localStorage.setItem('nn_high', highScore);
-    document.getElementById('highScore').textContent = highScore;
-  }
-
-  // Collisions
-  for (let o of obstacles) {
-    if (player.x + player.w > o.x - scrollOffset &&
-        player.x < o.x - scrollOffset + o.w &&
-        player.y + player.h > o.y &&
-        player.y < o.y + o.h) {
-      gameOver = true;
-      document.getElementById('gameOver').style.display = 'block';
-      document.getElementById('finalScore').textContent = score;
-      document.getElementById('restartBtn').style.display = 'block';
-    }
-  }
-
-  for (let i = collectibles.length - 1; i >= 0; i--) {
-    let co = collectibles[i];
-    let dx = player.x + player.w/2 - (co.x - scrollOffset);
-    let dy = player.y + player.h/2 - co.y;
-    if (Math.hypot(dx, dy) < 50) {
-      coins += 1;
-      localStorage.setItem('nn_coins', coins);
-      document.getElementById('coins').textContent = coins;
-      // Particules explosion
-      for (let k = 0; k < 12; k++) {
-        particles.push({
-          x: co.x, y: co.y,
-          vx: (Math.random()-0.5)*12,
-          vy: (Math.random()-0.5)*12 - 4,
-          life: 1
-        });
+  setupControls() {
+    document.getElementById('jumpBtn').addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      if (!this.gameOver) {
+        this.player.jump();
+        document.getElementById('jumpSound').play();
       }
-      collectibles.splice(i,1);
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (this.gameOver) return;
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
+        e.preventDefault();
+        this.player.jump();
+        document.getElementById('jumpSound').play();
+      }
+      if (e.code === 'ArrowLeft' && this.player.lane > -1) this.player.lane--;
+      if (e.code === 'ArrowRight' && this.player.lane < 1) this.player.lane++;
+    });
+
+    document.getElementById('restartBtn').addEventListener('click', () => this.reset());
+  }
+
+  setupSwipe() {
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    document.addEventListener('touchstart', (e) => {
+      if (this.gameOver) return;
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: false });
+
+    document.addEventListener('touchmove', (e) => {
+      if (this.gameOver) return;
+      e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchend', (e) => {
+      if (this.gameOver) return;
+      if (e.changedTouches.length === 1) {
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+
+        const dx = touchEndX - touchStartX;
+        const dy = touchEndY - touchStartY;
+
+        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
+          if (dx > 0 && this.player.lane < 1) this.player.lane++;
+          if (dx < 0 && this.player.lane > -1) this.player.lane--;
+        } else if (Math.abs(dy) > 80 && Math.abs(dy) > Math.abs(dx)) {
+          if (dy < 0) {
+            this.player.jump();
+            document.getElementById('jumpSound').play();
+          }
+        }
+      }
+    }, { passive: false });
+  }
+
+  setupShop() {
+    const skins = [
+      { id: 'default', name: 'Jaune', color: 0xffea00, price: 0 },
+      { id: 'red', name: 'Rouge', color: 0xff0000, price: 50 },
+      { id: 'blue', name: 'Bleu', color: 0x0000ff, price: 100 },
+      { id: 'green', name: 'Vert', color: 0x00ff00, price: 200 }
+    ];
+
+    const shopBtn = document.getElementById('shopBtn');
+    const shop = document.getElementById('shop');
+    const skinsList = document.getElementById('skinsList');
+    const closeShop = document.getElementById('closeShop');
+
+    shopBtn.onclick = () => {
+      if (this.gameOver) return;
+      shop.style.display = 'block';
+      skinsList.innerHTML = '';
+      skins.forEach(s => {
+        const owned = s.price === 0 || localStorage.getItem('nn_owned_' + s.id) === 'true';
+        const isCurrent = this.currentSkin === s.id;
+        let btnText = isCurrent ? 'Équipé' : owned ? 'Équiper' : `Acheter (${s.price})`;
+        skinsList.innerHTML += `<p>${s.name} <button onclick="window.buySkin('${s.id}')">${btnText}</button></p>`;
+      });
+    };
+
+    closeShop.onclick = () => shop.style.display = 'none';
+
+    window.buySkin = (id) => {
+      const s = skins.find(sk => sk.id === id);
+      const owned = localStorage.getItem('nn_owned_' + id) === 'true';
+      if (!owned && this.coins >= s.price) {
+        this.coins -= s.price;
+        localStorage.setItem('nn_coins', this.coins);
+        localStorage.setItem('nn_owned_' + id, 'true');
+        document.getElementById('coins').textContent = this.coins;
+      }
+      if (owned || s.price === 0) {
+        this.currentSkin = id;
+        localStorage.setItem('nn_skin', id);
+        this.player.updateSkin(s.color);
+      }
+      shopBtn.click(); // refresh shop
+    };
+  }
+
+  reset() {
+    this.score = 0;
+    this.gameOver = false;
+    this.speed = 0.18;
+    this.player.reset();
+    this.obstacles.forEach(o => this.scene.remove(o.mesh));
+    this.collectibles.forEach(c => this.scene.remove(c.mesh));
+    this.particles.forEach(p => this.scene.remove(p));
+    this.obstacles = [];
+    this.collectibles = [];
+    this.particles = [];
+    document.getElementById('gameOver').style.display = 'none';
+    document.getElementById('score').textContent = '0';
+    this.animate();
+  }
+
+  animate() {
+    if (this.gameOver) return;
+
+    requestAnimationFrame(() => this.animate());
+
+    const delta = this.clock.getDelta();
+
+    this.player.update(delta, this.speed);
+    this.track.update(this.speed, delta);
+
+    // Génération variée d'obstacles (50% bas pour saut, 50% haut pour dodge)
+    if (Math.random() < 0.04 + this.speed * 0.07) {
+      const lane = Math.floor(Math.random() * 3) - 1;
+      const type = Math.random() < 0.5 ? 'low' : 'high';
+      this.obstacles.push(new Obstacle(this.scene, lane, type));
+    }
+    if (Math.random() < 0.03) {
+      const lane = Math.floor(Math.random() * 3) - 1;
+      this.collectibles.push(new Collectible(this.scene, lane));
+    }
+
+    // Update obstacles & collisions
+    this.obstacles = this.obstacles.filter(o => {
+      o.update(this.speed);
+      if (this.player.checkCollision(o.mesh, o.type)) {
+        document.getElementById('crashSound').play();
+        this.endGame();
+        return false;
+      }
+      if (o.mesh.position.z > 40) {
+        this.scene.remove(o.mesh);
+        return false;
+      }
+      return true;
+    });
+
+    // Update collectibles & particules
+    this.collectibles = this.collectibles.filter(c => {
+      c.update(this.speed);
+      if (this.player.checkCollision(c.mesh)) {
+        document.getElementById('collectSound').play();
+        this.coins += 5; // +5 coins par pièce
+        localStorage.setItem('nn_coins', this.coins);
+        document.getElementById('coins').textContent = this.coins;
+        this.createParticles(c.mesh.position);
+        this.scene.remove(c.mesh);
+        return false;
+      }
+      if (c.mesh.position.z > 40) {
+        this.scene.remove(c.mesh);
+        return false;
+      }
+      return true;
+    });
+
+    // Update particules
+    this.particles.forEach(p => p.update(delta));
+    this.particles = this.particles.filter(p => p.life > 0);
+
+    this.score += this.speed * 150;
+    document.getElementById('score').textContent = Math.floor(this.score);
+
+    if (this.score > this.highScore) {
+      this.highScore = Math.floor(this.score);
+      localStorage.setItem('nn_high', this.highScore);
+      document.getElementById('high').textContent = this.highScore;
+    }
+
+    this.speed += 0.00016;
+
+    this.camera.position.x = this.player.mesh.position.x * 0.35;
+    this.camera.position.z = this.player.mesh.position.z + 14;
+    this.camera.lookAt(this.player.mesh.position.x, this.player.mesh.position.y + 3, this.player.mesh.position.z - 12);
+
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  createParticles(pos) {
+    for (let i = 0; i < 20; i++) {
+      this.particles.push(new Particle(this.scene, pos));
     }
   }
 
-  // Nettoyage
-  obstacles = obstacles.filter(o => o.x - scrollOffset > -100);
-  collectibles = collectibles.filter(co => co.x - scrollOffset > -100);
-
-  speed += 0.0012;
-
-  requestAnimationFrame(loop);
+  endGame() {
+    this.gameOver = true;
+    document.getElementById('finalScore').textContent = `Score: ${Math.floor(this.score)}`;
+    document.getElementById('gameOver').style.display = 'block';
+  }
 }
 
-// Restart
-document.getElementById('restartBtn').onclick = () => location.reload();
+class Player {
+  constructor(scene, skin) {
+    this.group = new THREE.Group();
+    // Corps
+    const bodyGeo = new THREE.BoxGeometry(1.4, 1.6, 1.4);
+    this.bodyMat = new THREE.MeshStandardMaterial({ color: 0xffea00, emissive: 0xffaa00, emissiveIntensity: 0.4 });
+    this.body = new THREE.Mesh(bodyGeo, this.bodyMat);
+    this.body.position.y = 0.8;
+    this.group.add(this.body);
 
-// Démarrage
-updateShop();
-loop();
+    // Tête
+    const headGeo = new THREE.SphereGeometry(0.7, 16, 16);
+    const headMat = new THREE.MeshStandardMaterial({ color: 0xffea00 });
+    this.head = new THREE.Mesh(headGeo, headMat);
+    this.head.position.y = 1.9;
+    this.group.add(this.head);
 
-// Resize
+    this.group.position.set(0, 1, 0);
+    this.group.castShadow = true;
+    scene.add(this.group);
+
+    this.lane = 0;
+    this.velocityY = 0;
+    this.isJumping = false;
+
+    this.updateSkin(skin);
+  }
+
+  reset() {
+    this.group.position.set(0, 1, 0);
+    this.lane = 0;
+    this.velocityY = 0;
+    this.isJumping = false;
+  }
+
+  jump() {
+    if (!this.isJumping) {
+      this.velocityY = 0.34;
+      this.isJumping = true;
+    }
+  }
+
+  update(delta, speed) {
+    const targetX = this.lane * 3.5;
+    this.group.position.x += (targetX - this.group.position.x) * 0.3;
+
+    this.velocityY -= 0.02 * delta * 60;
+    this.group.position.y += this.velocityY * delta * 60;
+
+    if (this.group.position.y <= 1) {
+      this.group.position.y = 1;
+      this.velocityY = 0;
+      this.isJumping = false;
+    }
+
+    this.group.position.z -= speed * 60 * delta;
+  }
+
+  checkCollision(other, type) {
+    const dx = Math.abs(this.group.position.x - other.position.x);
+    const dz = Math.abs(this.group.position.z - other.position.z);
+    const dy = this.group.position.y - other.position.y;
+    if (type === 'low' && this.isJumping && dy > 1.5) return false; // saut par-dessus low
+    return dx < 1.7 && dy < 2.0 && dz < 1.7;
+  }
+
+  updateSkin(color) {
+    this.bodyMat.color.setHex(color);
+    this.head.material.color.setHex(color);
+  }
+}
+
+class Track {
+  constructor(scene) {
+    this.scene = scene;
+    this.parts = [];
+    this.create();
+  }
+
+  create() {
+    for (let i = -8; i < 40; i++) {
+      const geo = new THREE.PlaneGeometry(15, 12);
+      const mat = new THREE.MeshStandardMaterial({ color: 0x111122, roughness: 0.9 });
+      const floor = new THREE.Mesh(geo, mat);
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.set(0, 0, -i * 12);
+      floor.receiveShadow = true;
+      this.scene.add(floor);
+      this.parts.push(floor);
+
+      for (let side of [-1, 1]) {
+        const railGeo = new THREE.BoxGeometry(1.4, 0.5, 12.5);
+        const railMat = new THREE.MeshStandardMaterial({ color: 0x444466, metalness: 0.6 });
+        const rail = new THREE.Mesh(railGeo, railMat);
+        rail.position.set(side * 5.5, 0.25, -i * 12);
+        this.scene.add(rail);
+        this.parts.push(rail);
+      }
+    }
+  }
+
+  update(speed, delta) {
+    this.parts.forEach(p => {
+      p.position.z += speed * 60 * delta;
+      if (p.position.z > 100) {
+        p.position.z -= 580;
+      }
+    });
+  }
+}
+
+class Obstacle {
+  constructor(scene, lane, type) {
+    let height = type === 'low' ? 1.5 : 3.5; // low jumpable, high dodge
+    const geo = new THREE.BoxGeometry(3.0, height, 3.5);
+    const mat = new THREE.MeshStandardMaterial({ color: 0xff0033, emissive: 0x880000 });
+    this.mesh = new THREE.Mesh(geo, mat);
+    this.mesh.position.set(lane * 3.5, height / 2, -100 - Math.random() * 80);
+    this.mesh.castShadow = true;
+    scene.add(this.mesh);
+    this.type = type;
+  }
+
+  update(speed) {
+    this.mesh.position.z += speed * 60;
+  }
+}
+
+class Collectible {
+  constructor(scene, lane) {
+    const geo = new THREE.SphereGeometry(1.0, 24, 24);
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xffff00,
+      emissive: 0xffff00,
+      emissiveIntensity: 1.5,
+      metalness: 0.5
+    });
+    this.mesh = new THREE.Mesh(geo, mat);
+    this.mesh.position.set(lane * 3.5, 2.5 + Math.random() * 2, -110 - Math.random() * 90);
+    scene.add(this.mesh);
+  }
+
+  update(speed) {
+    this.mesh.position.z += speed * 60;
+    this.mesh.rotation.y += 0.07;
+  }
+}
+
+class Particle {
+  constructor(scene, pos) {
+    const geo = new THREE.SphereGeometry(0.15, 8, 8);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+    this.mesh = new THREE.Mesh(geo, mat);
+    this.mesh.position.copy(pos);
+    scene.add(this.mesh);
+
+    this.vx = (Math.random() - 0.5) * 0.2;
+    this.vy = Math.random() * 0.3 + 0.1;
+    this.vz = (Math.random() - 0.5) * 0.2;
+    this.life = 1;
+  }
+
+  update(delta) {
+    this.mesh.position.x += this.vx;
+    this.mesh.position.y += this.vy;
+    this.mesh.position.z += this.vz;
+    this.vy -= 0.02;
+    this.life -= delta * 2;
+    this.mesh.scale.set(this.life, this.life, this.life);
+    if (this.life <= 0) this.scene.remove(this.mesh);
+  }
+}
+
+// ────────────────────────────────────────────────
+// LANCEMENT
+// ────────────────────────────────────────────────
+
+const game = new Game();
+game.init();
+
 window.addEventListener('resize', () => {
-  c.width = window.innerWidth;
-  c.height = window.innerHeight;
-  lanes = [c.width*0.22, c.width*0.5, c.width*0.78];
-  player.y = c.height - 200;
+  game.camera.aspect = window.innerWidth / window.innerHeight;
+  game.camera.updateProjectionMatrix();
+  game.renderer.setSize(window.innerWidth, window.innerHeight);
 });
 </script>
 </body>
