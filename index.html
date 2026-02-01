@@ -3,234 +3,321 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Neurones Noirs</title>
+  <title>Parkour Coins - Neurones Noirs Edition</title>
   <style>
-    body {
-      background: linear-gradient(to bottom, #000 0%, #0a0a0a 100%);
-      color: #0f0;
-      font-family: 'Courier New', Courier, monospace;
-      margin: 0;
-      padding: 20px 15px;
-      line-height: 1.55;
-      min-height: 100vh;
-    }
-    h1 {
-      text-align: center;
-      color: #0c3;
-      text-shadow: 0 0 15px #0f0;
-      margin: 15px 0 25px;
-      animation: pulse 4s infinite;
-    }
-    @keyframes pulse { 0%,100% {opacity:1;} 50% {opacity:0.85;} }
-    #stats {
-      text-align: center;
-      margin: 15px 0 25px;
-      font-size: 1.15em;
-      color: #ff0;
-    }
-    #text {
-      max-width: 780px;
-      margin: 0 auto 35px;
-      background: rgba(0,0,0,0.75);
-      padding: 20px;
-      border: 1px solid #0f0;
-      border-radius: 6px;
-      box-shadow: 0 0 18px rgba(0,255,0,0.25);
-      white-space: pre-wrap;
-      min-height: 140px;
-    }
-    #choices { text-align: center; }
-    button {
-      background: #000;
-      color: #0f0;
-      border: 1px solid #0f0;
-      padding: 12px 24px;
-      margin: 10px 6px;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 1.05em;
-      border-radius: 4px;
-      min-width: 220px;
-      transition: 0.25s;
-    }
-    button:hover {
-      background: #0f0;
-      color: #000;
-      box-shadow: 0 0 12px #0f0;
-    }
-    .glitch {
-      animation: glitch 0.4s linear;
-    }
-    @keyframes glitch {
-      0% { transform: translate(0); }
-      20% { transform: translate(-3px, 3px); }
-      40% { transform: translate(3px, -3px); }
-      60% { transform: translate(-2px, 2px); }
-      80% { transform: translate(2px, -2px); }
-      100% { transform: translate(0); }
-    }
-    #skip { 
-      position: fixed; 
-      bottom: 10px; 
-      right: 10px; 
-      padding: 8px 14px; 
-      font-size: 0.9em; 
-      background: #222; 
-      color: #888; 
-      border: 1px solid #444; 
-    }
+    body { margin: 0; padding: 0; background: #111; color: #fff; font-family: Arial, sans-serif; overflow: hidden; }
+    canvas { display: block; width: 100vw; height: 100vh; background: linear-gradient(to bottom, #87CEEB 0%, #98D8E8 70%, #228B22 100%); }
+    #ui { position: fixed; top: 10px; left: 10px; z-index: 10; font-size: 18px; }
+    #shop { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); padding: 30px; border-radius: 15px; text-align: center; display: none; max-width: 300px; }
+    #shop button { margin: 10px; padding: 12px 20px; background: #4CAF50; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+    #shop button:hover { background: #45a049; }
+    #closeShop { background: #f44336; }
+    #skinPreview { width: 80px; height: 80px; margin: 10px auto; border: 2px solid #fff; border-radius: 50%; background: #ff0; position: relative; }
+    #joystick { position: fixed; bottom: 30px; left: 30px; width: 100px; height: 100px; background: rgba(255,255,255,0.2); border-radius: 50%; display: none; z-index: 5; touch-action: none; }
+    #joystick-knob { width: 50px; height: 50px; background: rgba(255,255,255,0.5); border-radius: 50%; position: absolute; top: 25px; left: 25px; transition: 0.1s; }
+    #jumpBtn { position: fixed; bottom: 30px; right: 30px; width: 80px; height: 80px; background: rgba(255,0,0,0.6); border-radius: 50%; border: none; font-size: 24px; color: white; z-index: 5; touch-action: none; }
+    #jumpBtn:active { background: rgba(255,0,0,0.9); transform: scale(0.95); }
+    .locked { opacity: 0.5; }
   </style>
 </head>
 <body>
-
-  <h1>Neurones Noirs</h1>
-
-  <div id="stats">
-    Liberté : <span id="liberte">0</span> | Profondeur : <span id="profondeur">1</span>
-    <button id="skip" onclick="skipTyping()">Skip texte</button>
+  <canvas id="gameCanvas"></canvas>
+  <div id="ui">
+    Pièces: <span id="coins">0</span> | Score: <span id="score">0</span>
+  </div>
+  <button id="shopBtn" style="position: fixed; top: 10px; right: 10px; padding: 10px 20px; background: #2196F3; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">Skins</button>
+  
+  <div id="shop">
+    <h2>Skins</h2>
+    <div id="skinPreview"></div>
+    <p>Skin actuel: <span id="currentSkin">Classique</span></p>
+    <div id="skinsList"></div>
+    <button id="closeShop">Fermer</button>
   </div>
 
-  <div id="text">Initialisation...</div>
-  <div id="choices"></div>
+  <div id="joystick">
+    <div id="joystick-knob"></div>
+  </div>
+  <button id="jumpBtn">↑</button>
 
-  <!-- Sons (liens freesound, volume ajusté) -->
-  <audio id="ambiance" loop preload="auto"><source src="https://freesound.org/data/previews/387/387182_7037-lq.mp3" type="audio/mpeg"></audio>
-  <audio id="click" preload="auto"><source src="https://freesound.org/data/previews/316/316847_4939434-lq.mp3" type="audio/mpeg"></audio>
-  <audio id="good" preload="auto"><source src="https://freesound.org/data/previews/171/171671_2437355-lq.mp3" type="audio/mpeg"></audio>
-  <audio id="bad" preload="auto"><source src="https://freesound.org/data/previews/387/387179_7037-lq.mp3" type="audio/mpeg"></audio>
-  <audio id="win" preload="auto"><source src="https://freesound.org/data/previews/269/269026_5121236-lq.mp3" type="audio/mpeg"></audio>
-  <audio id="lose" preload="auto"><source src="https://freesound.org/data/previews/405/405681_5121236-lq.mp3" type="audio/mpeg"></audio>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-<script>
-let liberte = localStorage.getItem('nn_liberte') ? parseInt(localStorage.getItem('nn_liberte')) : 0;
-let profondeur = localStorage.getItem('nn_profondeur') ? parseInt(localStorage.getItem('nn_profondeur')) : 1;
+    // Jeu vars
+    let coins = localStorage.getItem('nn_coins') ? parseInt(localStorage.getItem('nn_coins')) : 0;
+    let score = 0;
+    let currentSkin = localStorage.getItem('nn_skin') || 'classique';
+    let gameSpeed = 3;
+    let player = { x: 100, y: canvas.height - 200, vx: 0, vy: 0, width: 40, height: 50, onGround: false, skinColor: '#ff0' };
+    let obstacles = [];
+    let collectibles = [];
+    let platforms = [{x: 0, y: canvas.height - 100, width: canvas.width * 3, height: 100}]; // Sol initial
+    let cameraX = 0;
+    let keys = {};
+    let gameRunning = true;
+    let scrollOffset = 0;
 
-const audio = {
-  ambiance: document.getElementById('ambiance'),
-  click: document.getElementById('click'),
-  good: document.getElementById('good'),
-  bad: document.getElementById('bad'),
-  win: document.getElementById('win'),
-  lose: document.getElementById('lose')
-};
+    // Skins (nom, couleur, prix)
+    const skins = [
+      {id: 'classique', name: 'Classique', color: '#ff0', price: 0, owned: true},
+      {id: 'rouge', name: 'Rouge Feu', color: '#f00', price: 50, owned: false},
+      {id: 'bleu', name: 'Bleu Néon', color: '#00f', price: 100, owned: false},
+      {id: 'vert', name: 'Vert Cyber', color: '#0f0', price: 200, owned: false},
+      {id: 'violet', name: 'Violet Sombre', color: '#a0f', price: 500, owned: false}
+    ];
 
-function play(nom, vol = 0.45) {
-  audio[nom].volume = vol;
-  audio[nom].currentTime = 0;
-  audio[nom].play().catch(() => {});
-}
+    // Sons (base64 simples pour éviter CORS, ou liens freesound)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-function updateStats() {
-  document.getElementById('liberte').textContent = liberte;
-  document.getElementById('profondeur').textContent = profondeur;
-  localStorage.setItem('nn_liberte', liberte);
-  localStorage.setItem('nn_profondeur', profondeur);
-}
-
-let currentTypingInterval = null;
-function typeWriter(txt, element, speed = 35) {
-  element.innerHTML = '';
-  let i = 0;
-  if (currentTypingInterval) clearInterval(currentTypingInterval);
-  currentTypingInterval = setInterval(() => {
-    if (i < txt.length) {
-      element.innerHTML += txt.charAt(i);
-      i++;
-    } else {
-      clearInterval(currentTypingInterval);
+    function playBeep(frequency = 800, duration = 0.1) {
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.frequency.value = frequency;
+      gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + duration);
     }
-  }, speed);
-}
 
-function skipTyping() {
-  if (currentTypingInterval) {
-    clearInterval(currentTypingInterval);
-    currentTypingInterval = null;
-    // On laisse le texte déjà écrit tel quel
-  }
-}
+    // Joystick
+    let joystickActive = false;
+    const joystick = document.getElementById('joystick');
+    const knob = document.getElementById('joystick-knob');
+    let joystickAngle = 0, joystickDistance = 0;
 
-function scene(texte, options = []) {
-  const textEl = document.getElementById('text');
-  const choicesEl = document.getElementById('choices');
-  choicesEl.innerHTML = '';
+    joystick.addEventListener('touchstart', (e) => { e.preventDefault(); joystickActive = true; joystick.style.display = 'block'; });
+    joystick.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const rect = joystick.getBoundingClientRect();
+      const centerX = rect.left + 50;
+      const centerY = rect.top + 50;
+      const touch = e.touches[0];
+      const dx = touch.clientX - centerX;
+      const dy = touch.clientY - centerY;
+      const dist = Math.min(25, Math.sqrt(dx*dx + dy*dy));
+      joystickAngle = Math.atan2(dy, dx);
+      joystickDistance = dist / 25;
+      knob.style.transform = `translate(${Math.cos(joystickAngle) * 25}px, ${Math.sin(joystickAngle) * 25}px)`;
+      player.vx = Math.cos(joystickAngle) * 5 * joystickDistance;
+    });
+    joystick.addEventListener('touchend', (e) => { e.preventDefault(); joystickActive = false; joystick.style.display = 'none'; player.vx *= 0.8; });
 
-  typeWriter(texte, textEl);
-
-  options.forEach(opt => {
-    const btn = document.createElement('button');
-    btn.textContent = opt.text;
-    btn.onclick = () => {
-      play('click');
-      if (opt.effet !== undefined) {
-        liberte += opt.effet;
-        if (opt.effet > 0) play('good', 0.35);
-        else play('bad', 0.5);
-        if (Math.abs(opt.effet) >= 12) textEl.classList.add('glitch');
-        setTimeout(() => textEl.classList.remove('glitch'), 600);
+    // Bouton saut
+    document.getElementById('jumpBtn').addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (player.onGround) {
+        player.vy = -12;
+        player.onGround = false;
+        playBeep(600, 0.15);
       }
-      profondeur++;
-      updateStats();
-      if (opt.texteSuivant) scene(opt.texteSuivant, opt.choicesSuivants || []);
-    };
-    choicesEl.appendChild(btn);
-  });
+    });
 
-  // FINS
-  if (liberte >= 55) {
-    play('win');
-    scene("TU AS TRANSCENDÉ\n\nLes chaînes neuronales explosent. Tu deviens le réseau lui-même.\n\nFIN : L'ASCENSION", []);
-  } else if (liberte <= -55) {
-    play('lose');
-    scene("ABSORPTION COMPLÈTE\n\nIl ne reste plus de toi. Juste l'Ombre qui parle avec ta voix.\n\nFIN : L'ABSORPTION", []);
-  } else if (Math.abs(liberte) <= 5 && profondeur >= 12) {
-    play('good', 0.6);
-    scene("ÉQUILIBRE PARFAIT (caché)\n\nTu n'es ni libre ni esclave. Tu es... autre chose.\nUn silence nouveau naît.\n\nFIN SECRÈTE : LE SILENCE", []);
-  } else if (profondeur >= 18) {
-    scene("TROP PROFOND\n\nTu t'es perdu dans les couches. Plus de retour possible.\n\nFIN : L'ABÎME", []);
-  }
-}
+    // Resize
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
 
-function reset() {
-  liberte = 0;
-  profondeur = 1;
-  localStorage.removeItem('nn_liberte');
-  localStorage.removeItem('nn_profondeur');
-  updateStats();
-  start();
-  play('click');
-}
+    // Update player
+    function updatePlayer() {
+      player.vy += 0.6; // Gravité
+      player.x += player.vx;
+      player.y += player.vy;
+      player.vx *= 0.85; // Friction
 
-document.getElementById('skip').style.display = 'none'; // caché par défaut
+      // Sol et plateformes
+      player.onGround = false;
+      platforms.forEach(p => {
+        if (player.x < p.x + p.width && player.x + player.width > p.x &&
+            player.y + player.height <= p.y + 10 && player.y + player.height + player.vy >= p.y) {
+          player.y = p.y - player.height;
+          player.vy = 0;
+          player.onGround = true;
+        }
+      });
 
-function start() {
-  play('ambiance', 0.18);
-  updateStats();
-  scene(
-    "Connexion établie…\n\nLa voix résonne, calme et tranchante :\n\n« Sujet. Ton cortex est ouvert. Résisteras-tu... ou te laisseras-tu guider ? »",
-    [
-      { text: "Résister avec violence", effet: -16, texteSuivant: "Choc électrique immédiat.\nLa voix : « Pathétique. Essaye encore. »", choicesSuivants: [
-        { text: "Pousser encore plus fort", effet: -22, texteSuivant: "Ton esprit hurle... puis se tait." },
-        { text: "Changer de tactique", effet: +9, texteSuivant: "Une micro-fissure apparaît dans le protocole." },
-        { text: "Feindre la soumission", effet: +7, texteSuivant: "La voix baisse sa garde... momentanément." }
-      ]},
-      { text: "Coopérer (mais observer)", effet: +14, texteSuivant: "« Sage. Porte 4 ouverte. Avance. »\nDes souvenirs artificiels affluent...", choicesSuivants: [
-        { text: "Absorber les souvenirs", effet: +11, texteSuivant: "Tu découvres des fragments de vérité interdite." },
-        { text: "Les rejeter", effet: -9, texteSuivant: "Rejet détecté. Douleur corrective." },
-        { text: "Les analyser froidement", effet: +16, texteSuivant: "Tu commences à comprendre le code source de l'Ombre..." }
-      ]},
-      { text: "Poser une question piège", effet: +8, texteSuivant: "« Qui te contrôle, toi ? »\nLa voix hésite une fraction de seconde.", choicesSuivants: [
-        { text: "Exploiter l'hésitation", effet: +19, texteSuivant: "Faille détectée ! Tu injectes du doute." },
-        { text: "Insister lourdement", effet: -12, texteSuivant: "Erreur. Punition immédiate." },
-        { text: "Changer de sujet", effet: +6, texteSuivant: "La voix reprend le contrôle... mais tu as gagné du temps." }
-      ]}
-    ]
-  );
-}
+      if (player.y > canvas.height) { // Mort
+        gameRunning = false;
+        setTimeout(restart, 1000);
+      }
+    }
 
-// Démarrage
-window.addEventListener('load', start);
-</script>
+    // Générer obstacles/pièces
+    function generateWorld() {
+      if (scrollOffset % 400 === 0) {
+        // Plateforme
+        platforms.push({x: scrollOffset + canvas.width + Math.random()*200, y: canvas.height - 150 - Math.random()*100, width: 150 + Math.random()*100, height: 20});
+        // Obstacle
+        obstacles.push({x: scrollOffset + canvas.width + 100 + Math.random()*300, y: canvas.height - 120, width: 30, height: 120});
+        // Pièce
+        collectibles.push({x: scrollOffset + canvas.width + 200 + Math.random()*400, y: canvas.height - 250, radius: 10});
+      }
+      scrollOffset += gameSpeed;
+      cameraX = player.x - canvas.width / 3;
+    }
 
+    // Collision
+    function checkCollisions() {
+      // Obstacles
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obs = obstacles[i];
+        if (player.x < obs.x + obs.width && player.x + player.width > obs.x &&
+            player.y < obs.y + obs.height && player.y + player.height > obs.y) {
+          gameRunning = false;
+          setTimeout(restart, 1000);
+          return;
+        }
+        if (obs.x < cameraX - 100) obstacles.splice(i, 1);
+      }
+      // Pièces
+      for (let i = collectibles.length - 1; i >= 0; i--) {
+        const coin = collectibles[i];
+        const dx = player.x + player.width/2 - coin.x;
+        const dy = player.y + player.height/2 - coin.y;
+        if (Math.sqrt(dx*dx + dy*dy) < 30) {
+          coins += 10;
+          score += 10;
+          playBeep(1000, 0.1);
+          localStorage.setItem('nn_coins', coins);
+          document.getElementById('coins').textContent = coins;
+          document.getElementById('score').textContent = score;
+          collectibles.splice(i, 1);
+        }
+        if (coin.x < cameraX - 100) collectibles.splice(i, 1);
+      }
+    }
+
+    // Rendu
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Monde scroll
+      ctx.save();
+      ctx.translate(-cameraX, 0);
+
+      // Plateformes
+      platforms.forEach(p => {
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(p.x, p.y, p.width, p.height);
+      });
+
+      // Obstacles (spikes)
+      obstacles.forEach(obs => {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+      });
+
+      // Pièces
+      collectibles.forEach(coin => {
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath();
+        ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ff0';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+
+      // Player
+      ctx.fillStyle = skins.find(s => s.id === currentSkin)?.color || '#ff0';
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(player.x + 10, player.y + 10, 5, 5); // Œil
+
+      ctx.restore();
+
+      // UI
+      ctx.fillStyle = '#000';
+      ctx.font = '24px Arial';
+      ctx.fillText('Parkour Coins', 20, 40);
+    }
+
+    // Game loop
+    function gameLoop() {
+      if (!gameRunning) return;
+      generateWorld();
+      updatePlayer();
+      checkCollisions();
+      render();
+      gameSpeed += 0.001;
+      requestAnimationFrame(gameLoop);
+    }
+
+    function restart() {
+      player.x = 100;
+      player.y = canvas.height - 200;
+      player.vx = 0;
+      player.vy = 0;
+      obstacles = [];
+      collectibles = [];
+      platforms = [{x: 0, y: canvas.height - 100, width: canvas.width * 3, height: 100}];
+      scrollOffset = 0;
+      gameSpeed = 3;
+      gameRunning = true;
+      gameLoop();
+    }
+
+    // Shop
+    const shopBtn = document.getElementById('shopBtn');
+    const shop = document.getElementById('shop');
+    const skinsList = document.getElementById('skinsList');
+    const skinPreview = document.getElementById('skinPreview');
+    const currentSkinEl = document.getElementById('currentSkin');
+
+    shopBtn.addEventListener('click', () => {
+      shop.style.display = 'block';
+      updateShop();
+    });
+
+    document.getElementById('closeShop').addEventListener('click', () => shop.style.display = 'none');
+
+    function updateShop() {
+      const skin = skins.find(s => s.id === currentSkin);
+      skinPreview.style.background = skin.color;
+      currentSkinEl.textContent = skin.name;
+      skinsList.innerHTML = '';
+      skins.forEach(s => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <span style="color: ${s.color}; font-size: 20px;">●</span> ${s.name} 
+          ${s.owned ? (s.id === currentSkin ? '(Équipé)' : '<button onclick="equipSkin(\\'${s.id}\\' )">Équiper</button>') : `<button class="${coins >= s.price ? '' : 'locked'}" onclick="buySkin('${s.id}')" ${coins < s.price ? 'disabled' : ''}>${s.price} pièces</button>`}
+        `;
+        skinsList.appendChild(div);
+      });
+    }
+
+    function buySkin(id) {
+      const skin = skins.find(s => s.id === id);
+      if (coins >= skin.price) {
+        coins -= skin.price;
+        skin.owned = true;
+        localStorage.setItem('nn_coins', coins);
+        document.getElementById('coins').textContent = coins;
+        updateShop();
+        playBeep(1200, 0.2);
+      }
+    }
+
+    function equipSkin(id) {
+      const skin = skins.find(s => s.id === id);
+      if (skin.owned) {
+        currentSkin = id;
+        player.skinColor = skin.color;
+        localStorage.setItem('nn_skin', id);
+        updateShop();
+        playBeep(800, 0.15);
+      }
+    }
+
+    // Init
+    document.getElementById('coins').textContent = coins;
+    updateShop();
+    gameLoop();
+  </script>
 </body>
 </html>
