@@ -2,322 +2,257 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Parkour Coins - Neurones Noirs Edition</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Neurones Noirs - Parkour</title>
   <style>
-    body { margin: 0; padding: 0; background: #111; color: #fff; font-family: Arial, sans-serif; overflow: hidden; }
-    canvas { display: block; width: 100vw; height: 100vh; background: linear-gradient(to bottom, #87CEEB 0%, #98D8E8 70%, #228B22 100%); }
-    #ui { position: fixed; top: 10px; left: 10px; z-index: 10; font-size: 18px; }
-    #shop { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); padding: 30px; border-radius: 15px; text-align: center; display: none; max-width: 300px; }
-    #shop button { margin: 10px; padding: 12px 20px; background: #4CAF50; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
-    #shop button:hover { background: #45a049; }
-    #closeShop { background: #f44336; }
-    #skinPreview { width: 80px; height: 80px; margin: 10px auto; border: 2px solid #fff; border-radius: 50%; background: #ff0; position: relative; }
-    #joystick { position: fixed; bottom: 30px; left: 30px; width: 100px; height: 100px; background: rgba(255,255,255,0.2); border-radius: 50%; display: none; z-index: 5; touch-action: none; }
-    #joystick-knob { width: 50px; height: 50px; background: rgba(255,255,255,0.5); border-radius: 50%; position: absolute; top: 25px; left: 25px; transition: 0.1s; }
-    #jumpBtn { position: fixed; bottom: 30px; right: 30px; width: 80px; height: 80px; background: rgba(255,0,0,0.6); border-radius: 50%; border: none; font-size: 24px; color: white; z-index: 5; touch-action: none; }
-    #jumpBtn:active { background: rgba(255,0,0,0.9); transform: scale(0.95); }
-    .locked { opacity: 0.5; }
+    body { margin:0; padding:0; background:#000; overflow:hidden; touch-action:none; font-family:Arial,sans-serif; }
+    canvas { display:block; width:100vw; height:100vh; background:linear-gradient(#0a001a 0%, #1a0033 50%, #000 100%); }
+    #ui { position:fixed; top:10px; left:10px; color:#0f0; font-size:20px; z-index:10; text-shadow:0 0 5px #0f0; pointer-events:none; }
+    #shopBtn { position:fixed; top:10px; right:10px; padding:8px 16px; background:#00f; color:#fff; border:none; border-radius:8px; font-size:16px; z-index:10; cursor:pointer; }
+    #shop { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.9); padding:30px; border:2px solid #0f0; border-radius:12px; color:#0f0; text-align:center; display:none; max-width:320px; z-index:20; box-shadow:0 0 20px #0f0; }
+    #shop button { margin:8px; padding:10px 20px; background:#0f0; color:#000; border:none; border-radius:6px; font-size:16px; cursor:pointer; }
+    #closeShop { background:#f00; color:#fff; }
+    #skinPreview { width:80px; height:80px; margin:15px auto; border:3px solid #0f0; border-radius:50%; box-shadow:0 0 15px #0f0; }
+    #joystick { position:fixed; bottom:40px; left:40px; width:120px; height:120px; background:rgba(255,255,255,0.15); border-radius:50%; z-index:5; touch-action:none; display:none; }
+    #knob { width:60px; height:60px; background:rgba(0,255,0,0.4); border-radius:50%; position:absolute; top:30px; left:30px; transition:0.1s; }
+    #jumpBtn { position:fixed; bottom:40px; right:40px; width:90px; height:90px; background:rgba(255,0,0,0.5); border:none; border-radius:50%; color:#fff; font-size:40px; z-index:5; touch-action:none; }
+    #jumpBtn:active { transform:scale(0.92); background:rgba(255,0,0,0.8); }
+    #gameOver { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); color:#f00; font-size:50px; text-shadow:0 0 10px #f00; display:none; z-index:15; pointer-events:none; }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
-  <div id="ui">
-    Pièces: <span id="coins">0</span> | Score: <span id="score">0</span>
-  </div>
-  <button id="shopBtn" style="position: fixed; top: 10px; right: 10px; padding: 10px 20px; background: #2196F3; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">Skins</button>
-  
+
+  <canvas id="c"></canvas>
+  <div id="ui">Coins: <span id="coins">0</span> | Score: <span id="score">0</span></div>
+  <button id="shopBtn">Skins</button>
+  <div id="gameOver">GAME OVER</div>
+
   <div id="shop">
     <h2>Skins</h2>
     <div id="skinPreview"></div>
-    <p>Skin actuel: <span id="currentSkin">Classique</span></p>
-    <div id="skinsList"></div>
+    <p>Actuel: <span id="skinName">Classique</span></p>
+    <div id="skins"></div>
     <button id="closeShop">Fermer</button>
   </div>
 
-  <div id="joystick">
-    <div id="joystick-knob"></div>
-  </div>
+  <div id="joystick"><div id="knob"></div></div>
   <button id="jumpBtn">↑</button>
 
-  <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+<script>
+// === CONFIG ===
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+c.width = window.innerWidth;
+c.height = window.innerHeight;
 
-    // Jeu vars
-    let coins = localStorage.getItem('nn_coins') ? parseInt(localStorage.getItem('nn_coins')) : 0;
-    let score = 0;
-    let currentSkin = localStorage.getItem('nn_skin') || 'classique';
-    let gameSpeed = 3;
-    let player = { x: 100, y: canvas.height - 200, vx: 0, vy: 0, width: 40, height: 50, onGround: false, skinColor: '#ff0' };
-    let obstacles = [];
-    let collectibles = [];
-    let platforms = [{x: 0, y: canvas.height - 100, width: canvas.width * 3, height: 100}]; // Sol initial
-    let cameraX = 0;
-    let keys = {};
-    let gameRunning = true;
-    let scrollOffset = 0;
+let coins = localStorage.getItem('nn_coins') ? +localStorage.getItem('nn_coins') : 0;
+let score = 0;
+let currentSkin = localStorage.getItem('nn_skin') || 'classique';
+let gameOver = false;
+let speed = 5;
+let gravity = 0.7;
+let player = { x: 150, y: c.height - 180, w: 50, h: 80, vy: 0, lane: 1, skin: currentSkin };
+let lanes = [c.width*0.25, c.width*0.5, c.width*0.75];
+let obstacles = [];
+let collectibles = [];
+let lastGen = 0;
 
-    // Skins (nom, couleur, prix)
-    const skins = [
-      {id: 'classique', name: 'Classique', color: '#ff0', price: 0, owned: true},
-      {id: 'rouge', name: 'Rouge Feu', color: '#f00', price: 50, owned: false},
-      {id: 'bleu', name: 'Bleu Néon', color: '#00f', price: 100, owned: false},
-      {id: 'vert', name: 'Vert Cyber', color: '#0f0', price: 200, owned: false},
-      {id: 'violet', name: 'Violet Sombre', color: '#a0f', price: 500, owned: false}
-    ];
+// Skins
+const skins = [
+  {id:'classique', name:'Classique', color:'#ff0', price:0},
+  {id:'rouge', name:'Rouge', color:'#f00', price:30},
+  {id:'bleu', name:'Bleu', color:'#00f', price:80},
+  {id:'vert', name:'Cyber', color:'#0f0', price:150},
+  {id:'violet', name:'Violet', color:'#a0f', price:300},
+  {id:'or', name:'Or', color:'#ffd700', price:600}
+];
 
-    // Sons (base64 simples pour éviter CORS, ou liens freesound)
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+// Update UI
+document.getElementById('coins').textContent = coins;
 
-    function playBeep(frequency = 800, duration = 0.1) {
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      oscillator.frequency.value = frequency;
-      gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-      oscillator.start(audioCtx.currentTime);
-      oscillator.stop(audioCtx.currentTime + duration);
-    }
+// Joystick
+const joy = document.getElementById('joystick');
+const knob = document.getElementById('knob');
+let joyTouchId = null;
 
-    // Joystick
-    let joystickActive = false;
-    const joystick = document.getElementById('joystick');
-    const knob = document.getElementById('joystick-knob');
-    let joystickAngle = 0, joystickDistance = 0;
+joy.addEventListener('touchstart', e => {
+  e.preventDefault();
+  joyTouchId = e.changedTouches[0].identifier;
+  joy.style.display = 'block';
+});
 
-    joystick.addEventListener('touchstart', (e) => { e.preventDefault(); joystickActive = true; joystick.style.display = 'block'; });
-    joystick.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      const rect = joystick.getBoundingClientRect();
-      const centerX = rect.left + 50;
-      const centerY = rect.top + 50;
-      const touch = e.touches[0];
-      const dx = touch.clientX - centerX;
-      const dy = touch.clientY - centerY;
-      const dist = Math.min(25, Math.sqrt(dx*dx + dy*dy));
-      joystickAngle = Math.atan2(dy, dx);
-      joystickDistance = dist / 25;
-      knob.style.transform = `translate(${Math.cos(joystickAngle) * 25}px, ${Math.sin(joystickAngle) * 25}px)`;
-      player.vx = Math.cos(joystickAngle) * 5 * joystickDistance;
-    });
-    joystick.addEventListener('touchend', (e) => { e.preventDefault(); joystickActive = false; joystick.style.display = 'none'; player.vx *= 0.8; });
+joy.addEventListener('touchmove', e => {
+  e.preventDefault();
+  for (let touch of e.changedTouches) {
+    if (touch.identifier === joyTouchId) {
+      const rect = joy.getBoundingClientRect();
+      const cx = rect.left + 60;
+      const cy = rect.top + 60;
+      let dx = touch.clientX - cx;
+      let dy = touch.clientY - cy;
+      let dist = Math.hypot(dx, dy);
+      let maxDist = 60;
+      if (dist > maxDist) { dx *= maxDist/dist; dy *= maxDist/dist; }
+      knob.style.left = (30 + dx) + 'px';
+      knob.style.top = (30 + dy) + 'px';
 
-    // Bouton saut
-    document.getElementById('jumpBtn').addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      if (player.onGround) {
-        player.vy = -12;
-        player.onGround = false;
-        playBeep(600, 0.15);
-      }
-    });
-
-    // Resize
-    window.addEventListener('resize', () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    });
-
-    // Update player
-    function updatePlayer() {
-      player.vy += 0.6; // Gravité
-      player.x += player.vx;
-      player.y += player.vy;
-      player.vx *= 0.85; // Friction
-
-      // Sol et plateformes
-      player.onGround = false;
-      platforms.forEach(p => {
-        if (player.x < p.x + p.width && player.x + player.width > p.x &&
-            player.y + player.height <= p.y + 10 && player.y + player.height + player.vy >= p.y) {
-          player.y = p.y - player.height;
-          player.vy = 0;
-          player.onGround = true;
-        }
-      });
-
-      if (player.y > canvas.height) { // Mort
-        gameRunning = false;
-        setTimeout(restart, 1000);
+      if (Math.abs(dx) > 30) {
+        let targetLane = player.lane + (dx > 0 ? 1 : -1);
+        if (targetLane >= 0 && targetLane <= 2) player.lane = targetLane;
       }
     }
+  }
+});
 
-    // Générer obstacles/pièces
-    function generateWorld() {
-      if (scrollOffset % 400 === 0) {
-        // Plateforme
-        platforms.push({x: scrollOffset + canvas.width + Math.random()*200, y: canvas.height - 150 - Math.random()*100, width: 150 + Math.random()*100, height: 20});
-        // Obstacle
-        obstacles.push({x: scrollOffset + canvas.width + 100 + Math.random()*300, y: canvas.height - 120, width: 30, height: 120});
-        // Pièce
-        collectibles.push({x: scrollOffset + canvas.width + 200 + Math.random()*400, y: canvas.height - 250, radius: 10});
-      }
-      scrollOffset += gameSpeed;
-      cameraX = player.x - canvas.width / 3;
+joy.addEventListener('touchend', e => {
+  e.preventDefault();
+  for (let touch of e.changedTouches) {
+    if (touch.identifier === joyTouchId) {
+      joyTouchId = null;
+      joy.style.display = 'none';
+      knob.style.left = '30px';
+      knob.style.top = '30px';
     }
+  }
+});
 
-    // Collision
-    function checkCollisions() {
-      // Obstacles
-      for (let i = obstacles.length - 1; i >= 0; i--) {
-        const obs = obstacles[i];
-        if (player.x < obs.x + obs.width && player.x + player.width > obs.x &&
-            player.y < obs.y + obs.height && player.y + player.height > obs.y) {
-          gameRunning = false;
-          setTimeout(restart, 1000);
-          return;
-        }
-        if (obs.x < cameraX - 100) obstacles.splice(i, 1);
-      }
-      // Pièces
-      for (let i = collectibles.length - 1; i >= 0; i--) {
-        const coin = collectibles[i];
-        const dx = player.x + player.width/2 - coin.x;
-        const dy = player.y + player.height/2 - coin.y;
-        if (Math.sqrt(dx*dx + dy*dy) < 30) {
-          coins += 10;
-          score += 10;
-          playBeep(1000, 0.1);
-          localStorage.setItem('nn_coins', coins);
-          document.getElementById('coins').textContent = coins;
-          document.getElementById('score').textContent = score;
-          collectibles.splice(i, 1);
-        }
-        if (coin.x < cameraX - 100) collectibles.splice(i, 1);
-      }
-    }
+// Saut
+document.getElementById('jumpBtn').addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (player.y + player.h >= c.height - 100 && player.vy === 0) {
+    player.vy = -15;
+  }
+});
 
-    // Rendu
-    function render() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+// Shop
+const shopBtn = document.getElementById('shopBtn');
+const shop = document.getElementById('shop');
+const skinsDiv = document.getElementById('skins');
+const preview = document.getElementById('skinPreview');
+const skinName = document.getElementById('skinName');
 
-      // Monde scroll
-      ctx.save();
-      ctx.translate(-cameraX, 0);
+shopBtn.onclick = () => { shop.style.display = 'block'; updateShop(); };
+document.getElementById('closeShop').onclick = () => shop.style.display = 'none';
 
-      // Plateformes
-      platforms.forEach(p => {
-        ctx.fillStyle = '#8B4513';
-        ctx.fillRect(p.x, p.y, p.width, p.height);
-      });
+function updateShop() {
+  const cur = skins.find(s => s.id === currentSkin);
+  preview.style.background = cur.color;
+  skinName.textContent = cur.name;
+  skinsDiv.innerHTML = '';
+  skins.forEach(s => {
+    let btnText = s.id === currentSkin ? '(Équipé)' : s.price === 0 ? 'Gratuit' : coins >= s.price ? `<button onclick="buy('${s.id}')">Acheter ${s.price}</button>` : `Bloqué (${s.price})`;
+    skinsDiv.innerHTML += `<p style="color:${s.color}">${s.name} ${btnText}</p>`;
+  });
+}
 
-      // Obstacles (spikes)
-      obstacles.forEach(obs => {
-        ctx.fillStyle = '#f00';
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-      });
-
-      // Pièces
-      collectibles.forEach(coin => {
-        ctx.fillStyle = '#ffd700';
-        ctx.beginPath();
-        ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#ff0';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      });
-
-      // Player
-      ctx.fillStyle = skins.find(s => s.id === currentSkin)?.color || '#ff0';
-      ctx.fillRect(player.x, player.y, player.width, player.height);
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(player.x + 10, player.y + 10, 5, 5); // Œil
-
-      ctx.restore();
-
-      // UI
-      ctx.fillStyle = '#000';
-      ctx.font = '24px Arial';
-      ctx.fillText('Parkour Coins', 20, 40);
-    }
-
-    // Game loop
-    function gameLoop() {
-      if (!gameRunning) return;
-      generateWorld();
-      updatePlayer();
-      checkCollisions();
-      render();
-      gameSpeed += 0.001;
-      requestAnimationFrame(gameLoop);
-    }
-
-    function restart() {
-      player.x = 100;
-      player.y = canvas.height - 200;
-      player.vx = 0;
-      player.vy = 0;
-      obstacles = [];
-      collectibles = [];
-      platforms = [{x: 0, y: canvas.height - 100, width: canvas.width * 3, height: 100}];
-      scrollOffset = 0;
-      gameSpeed = 3;
-      gameRunning = true;
-      gameLoop();
-    }
-
-    // Shop
-    const shopBtn = document.getElementById('shopBtn');
-    const shop = document.getElementById('shop');
-    const skinsList = document.getElementById('skinsList');
-    const skinPreview = document.getElementById('skinPreview');
-    const currentSkinEl = document.getElementById('currentSkin');
-
-    shopBtn.addEventListener('click', () => {
-      shop.style.display = 'block';
-      updateShop();
-    });
-
-    document.getElementById('closeShop').addEventListener('click', () => shop.style.display = 'none');
-
-    function updateShop() {
-      const skin = skins.find(s => s.id === currentSkin);
-      skinPreview.style.background = skin.color;
-      currentSkinEl.textContent = skin.name;
-      skinsList.innerHTML = '';
-      skins.forEach(s => {
-        const div = document.createElement('div');
-        div.innerHTML = `
-          <span style="color: ${s.color}; font-size: 20px;">●</span> ${s.name} 
-          ${s.owned ? (s.id === currentSkin ? '(Équipé)' : '<button onclick="equipSkin(\\'${s.id}\\' )">Équiper</button>') : `<button class="${coins >= s.price ? '' : 'locked'}" onclick="buySkin('${s.id}')" ${coins < s.price ? 'disabled' : ''}>${s.price} pièces</button>`}
-        `;
-        skinsList.appendChild(div);
-      });
-    }
-
-    function buySkin(id) {
-      const skin = skins.find(s => s.id === id);
-      if (coins >= skin.price) {
-        coins -= skin.price;
-        skin.owned = true;
-        localStorage.setItem('nn_coins', coins);
-        document.getElementById('coins').textContent = coins;
-        updateShop();
-        playBeep(1200, 0.2);
-      }
-    }
-
-    function equipSkin(id) {
-      const skin = skins.find(s => s.id === id);
-      if (skin.owned) {
-        currentSkin = id;
-        player.skinColor = skin.color;
-        localStorage.setItem('nn_skin', id);
-        updateShop();
-        playBeep(800, 0.15);
-      }
-    }
-
-    // Init
+window.buy = id => {
+  const s = skins.find(s => s.id === id);
+  if (coins >= s.price) {
+    coins -= s.price;
+    localStorage.setItem('nn_coins', coins);
+    currentSkin = id;
+    localStorage.setItem('nn_skin', id);
+    player.skin = id;
     document.getElementById('coins').textContent = coins;
     updateShop();
-    gameLoop();
-  </script>
+  }
+};
+
+// Game loop
+function loop() {
+  if (gameOver) return;
+
+  ctx.clearRect(0,0,c.width,c.height);
+
+  // Scroll monde
+  ctx.save();
+  ctx.translate(-scrollOffset % 400, 0);
+
+  // Sol
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, c.height - 100, c.width*10, 100);
+
+  // Obstacles & pièces
+  if (Date.now() - lastGen > 1000 / speed) {
+    lastGen = Date.now();
+    // Obstacle
+    obstacles.push({x: c.width + scrollOffset + 100, y: c.height - 150, w: 60, h: 150});
+    // Pièce
+    if (Math.random() > 0.3) collectibles.push({x: c.width + scrollOffset + 250 + Math.random()*300, y: c.height - 200 - Math.random()*120, r: 18});
+  }
+
+  // Update joueur
+  player.y += player.vy;
+  player.vy += gravity;
+  if (player.y + player.h > c.height - 100) {
+    player.y = c.height - 100 - player.h;
+    player.vy = 0;
+  }
+  player.x += (lanes[player.lane] - player.x) * 0.18; // smooth
+
+  // Draw joueur
+  ctx.fillStyle = skins.find(s => s.id === player.skin)?.color || '#ff0';
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(player.x + 15, player.y + 15, 8, 8); // œil
+
+  // Draw obstacles
+  ctx.fillStyle = '#c00';
+  obstacles.forEach(o => ctx.fillRect(o.x - scrollOffset, o.y, o.w, o.h));
+
+  // Draw collectibles
+  ctx.fillStyle = '#ff0';
+  collectibles.forEach(c => {
+    ctx.beginPath();
+    ctx.arc(c.x - scrollOffset, c.y, c.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#ff8';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  });
+
+  ctx.restore();
+
+  score += 1;
+  document.getElementById('score').textContent = score;
+
+  // Collision obstacle
+  for (let o of obstacles) {
+    if (player.x < o.x - scrollOffset + o.w && player.x + player.w > o.x - scrollOffset &&
+        player.y < o.y + o.h && player.y + player.h > o.y) {
+      gameOver = true;
+      document.getElementById('gameOver').style.display = 'block';
+      setTimeout(() => location.reload(), 1500);
+    }
+  }
+
+  // Collectible
+  for (let i = collectibles.length - 1; i >= 0; i--) {
+    let co = collectibles[i];
+    let dx = player.x + player.w/2 - (co.x - scrollOffset);
+    let dy = player.y + player.h/2 - co.y;
+    if (Math.hypot(dx, dy) < 45) {
+      coins += 1;
+      localStorage.setItem('nn_coins', coins);
+      document.getElementById('coins').textContent = coins;
+      collectibles.splice(i,1);
+    }
+  }
+
+  scrollOffset += speed;
+  speed += 0.0015;
+
+  requestAnimationFrame(loop);
+}
+
+loop();
+
+// Resize
+window.addEventListener('resize', () => {
+  c.width = window.innerWidth;
+  c.height = window.innerHeight;
+  lanes = [c.width*0.25, c.width*0.5, c.width*0.75];
+});
+</script>
 </body>
 </html>
