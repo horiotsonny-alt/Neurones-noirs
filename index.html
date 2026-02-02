@@ -2,42 +2,29 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <title>Urban Drive — Prototype 3D (Three.js)</title>
+  <title>Urban Drive — Prototype (fonctionnel)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    html,body{height:100%;margin:0;background:#0f1114;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;}
-    #container{position:fixed;inset:0;display:flex;align-items:stretch;justify-content:stretch}
-    canvas{display:block}
-    #ui {
-      position: absolute; left: 12px; top: 12px; z-index: 20; color: #fff;
-      display:flex; flex-direction:column; gap:8px;
-      text-shadow:0 1px 2px rgba(0,0,0,0.8);
-    }
-    .panel {
-      background: rgba(0,0,0,0.35); padding:8px 12px; border-radius:8px; backdrop-filter: blur(4px);
-      box-shadow: 0 6px 18px rgba(0,0,0,0.6);
-    }
-    #controls { display:flex; gap:6px; margin-top:6px; }
-    .btn { background:#111; color:#fff; border:1px solid rgba(255,255,255,0.04); padding:6px 10px; border-radius:6px; cursor:pointer; }
-    #mobileControls { position:absolute; right:12px; bottom:12px; z-index:20; display:none; gap:8px; }
-    .mbtn{ width:68px; height:56px; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(0,0,0,0.2); color:#fff; font-weight:700; font-size:16px; }
-    #loading { position: absolute; left:50%; top:50%; transform:translate(-50%,-50%); color:#ddd; background:rgba(0,0,0,0.5); padding:14px 18px; border-radius:8px; }
-    #hint { color:#bdbdbd; font-size:13px; margin-top:6px; }
+    html,body{height:100%;margin:0;background:#0f1114;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#fff}
+    #ui { position: absolute; left:12px; top:12px; z-index:20; display:flex; flex-direction:column; gap:8px; }
+    .panel { background:rgba(0,0,0,0.45); padding:8px 12px; border-radius:8px; }
+    .btn { background:#111; color:#fff; border:1px solid rgba(255,255,255,0.06); padding:6px 10px; border-radius:6px; cursor:pointer; }
+    #mobileControls { position: absolute; right:12px; bottom:12px; z-index:20; display:none; gap:8px; }
+    .mbtn{ width:64px; height:56px; border-radius:10px; background:rgba(255,255,255,0.06); color:#fff; font-weight:700; font-size:20px; border:none; }
+    #loading { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); color:#ddd; background:rgba(0,0,0,0.6); padding:10px 14px; border-radius:8px; display:none; z-index:30; }
+    #message { font-size:13px; color:#ccc; margin-top:6px; }
   </style>
 </head>
 <body>
-  <div id="container"></div>
-
   <div id="ui">
     <div class="panel">
-      <div style="font-weight:700;font-size:16px">Urban Drive — Prototype</div>
-      <div id="stats" style="margin-top:6px">Speed: <span id="speed">0</span> | Score: <span id="score">0</span></div>
-      <div id="controls" style="margin-top:8px">
+      <div style="font-weight:700">Urban Drive — Prototype</div>
+      <div style="margin-top:8px">Speed: <span id="speed">0</span> | Score: <span id="score">0</span></div>
+      <div style="margin-top:8px;display:flex;gap:8px">
         <button id="startBtn" class="btn">Démarrer</button>
         <button id="resetBtn" class="btn">Reset</button>
-        <button id="graphicsBtn" class="btn">Quality</button>
       </div>
-      <div id="hint">W/A/S/D ou flèches → conduire — Espace = turbo</div>
+      <div id="message">Contrôles: W/A/S/D ou flèches — Espace turbo</div>
     </div>
   </div>
 
@@ -47,592 +34,357 @@
     <button id="rightBtn" class="mbtn">▶</button>
   </div>
 
-  <div id="loading" style="display:none">Chargement…</div>
+  <div id="loading">Chargement…</div>
 
-  <!-- Three.js + postprocessing from unpkg (non-module, global THREE) -->
-  <script src="https://unpkg.com/three@0.152.2/build/three.min.js"></script>
-  <script src="https://unpkg.com/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://unpkg.com/three@0.152.2/examples/js/postprocessing/EffectComposer.js"></script>
-  <script src="https://unpkg.com/three@0.152.2/examples/js/postprocessing/RenderPass.js"></script>
-  <script src="https://unpkg.com/three@0.152.2/examples/js/postprocessing/UnrealBloomPass.js"></script>
-  <script src="https://unpkg.com/three@0.152.2/examples/js/postprocessing/ShaderPass.js"></script>
-  <script src="https://unpkg.com/three@0.152.2/examples/js/shaders/CopyShader.js"></script>
-
+  <!-- Three.js CDN (fallback loading handled in script) -->
   <script>
-  // Urban Drive — Single-file Three.js prototype
-  // Designed to be copy/paste runnable. Requires internet to load three.js from CDN.
-
-  // Basic settings
-  const container = document.getElementById('container');
-  const loading = document.getElementById('loading');
-  const mobileControls = document.getElementById('mobileControls');
-  const speedEl = document.getElementById('speed');
-  const scoreEl = document.getElementById('score');
-
-  let renderer, scene, camera, composer;
-  let vehicle, vehicleBB;
-  let obstacles = [];
-  let particles = [];
-  let keys = {};
-  let score = 0;
-  let uiQuality = 2; // 0 low, 1 med, 2 high
-
-  // Configurable params
-  const WORLD_SIZE = 1200;
-  const NUM_BUILDINGS = 60;
-  const MAX_OBSTACLES = 40;
-
-  // Start minimal UI, lazy init heavy objects on start
-  document.getElementById('startBtn').addEventListener('click', () => { start(); });
-  document.getElementById('resetBtn').addEventListener('click', () => { resetScene(); });
-  document.getElementById('graphicsBtn').addEventListener('click', () => {
-    uiQuality = (uiQuality + 1) % 3;
-    alert(['Low', 'Medium', 'High'][uiQuality]);
-    applyQuality();
-  });
-
-  // Mobile buttons
-  document.getElementById('leftBtn').addEventListener('touchstart', (e)=>{e.preventDefault(); keys.left=true});
-  document.getElementById('leftBtn').addEventListener('touchend', (e)=>{e.preventDefault(); keys.left=false});
-  document.getElementById('rightBtn').addEventListener('touchstart', (e)=>{e.preventDefault(); keys.right=true});
-  document.getElementById('rightBtn').addEventListener('touchend', (e)=>{e.preventDefault(); keys.right=false});
-  document.getElementById('upBtn').addEventListener('touchstart', (e)=>{e.preventDefault(); keys.forward=true});
-  document.getElementById('upBtn').addEventListener('touchend', (e)=>{e.preventDefault(); keys.forward=false});
-
-  // Keyboard
-  window.addEventListener('keydown', (e)=> {
-    if (['ArrowUp','KeyW'].includes(e.code)) keys.forward = true;
-    if (['ArrowLeft','KeyA'].includes(e.code)) keys.left = true;
-    if (['ArrowRight','KeyD'].includes(e.code)) keys.right = true;
-    if (['ArrowDown','KeyS'].includes(e.code)) keys.backward = true;
-    if (e.code === 'Space') keys.turbo = true;
-  });
-  window.addEventListener('keyup', (e)=> {
-    if (['ArrowUp','KeyW'].includes(e.code)) keys.forward = false;
-    if (['ArrowLeft','KeyA'].includes(e.code)) keys.left = false;
-    if (['ArrowRight','KeyD'].includes(e.code)) keys.right = false;
-    if (['ArrowDown','KeyS'].includes(e.code)) keys.backward = false;
-    if (e.code === 'Space') keys.turbo = false;
-  });
-
-  // Lazy initialize heavy scene on first start
-  function start() {
-    loading.style.display = 'block';
-    setTimeout(()=>{ // yield to UI
-      if (!renderer) init();
-      loading.style.display = 'none';
-      animate();
-    }, 50);
-  }
-
-  function init() {
-    // Renderer
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    container.appendChild(renderer.domElement);
-
-    // Scene
-    scene = new THREE.Scene();
-
-    // Camera
-    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 5000);
-    camera.position.set(0, 8, -14);
-
-    // Lights
-    const hemi = new THREE.HemisphereLight(0xbfdcff, 0x202020, 0.6);
-    scene.add(hemi);
-
-    const dir = new THREE.DirectionalLight(0xffffff, 1.0);
-    dir.position.set(40, 80, 20);
-    dir.castShadow = true;
-    dir.shadow.camera.left = -100; dir.shadow.camera.right = 100;
-    dir.shadow.camera.top = 100; dir.shadow.camera.bottom = -100;
-    dir.shadow.mapSize.set(2048, 2048);
-    scene.add(dir);
-
-    // Fog
-    scene.fog = new THREE.FogExp2(0x0f1216, 0.0009);
-
-    // Ground (road & sidewalks)
-    createGround();
-
-    // City: buildings
-    createCity();
-
-    // Vehicle
-    createVehicle();
-
-    // Ambient props & obstacles
-    createObstacles(18);
-
-    // Particles container
-    // Points geometry used for dust sparks
-    // Postprocessing
-    initPostProcessing();
-
-    // Responsive
-    window.addEventListener('resize', onWindowResize);
-
-    // Show mobile UI on small devices
-    if (/Mobi|Android/i.test(navigator.userAgent) || window.innerWidth < 600) {
-      mobileControls.style.display = 'flex';
-      document.getElementById('mobileControls').style.display = 'flex';
-    }
-  }
-
-  function createGround() {
-    // road texture via canvas
-    const canvasTex = document.createElement('canvas');
-    canvasTex.width = 1024; canvasTex.height = 1024;
-    const ctx2 = canvasTex.getContext('2d');
-    ctx2.fillStyle = '#2b2b2b'; ctx2.fillRect(0,0,1024,1024);
-    ctx2.fillStyle = '#242424';
-    for (let x=0;x<1024;x+=32) { ctx2.fillRect(x, 512, 16, 8); }
-    const tex = new THREE.CanvasTexture(canvasTex);
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(60, 60);
-
-    const groundMat = new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.6, metalness: 0.0, map: tex });
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE), groundMat);
-    ground.rotation.x = -Math.PI/2;
-    ground.receiveShadow = true;
-    scene.add(ground);
-
-    // sidewalk strips
-    const sideMat = new THREE.MeshStandardMaterial({ color: 0x1f1f20, roughness: 0.8 });
-    const left = new THREE.Mesh(new THREE.BoxGeometry(WORLD_SIZE, 1, 30), sideMat);
-    left.position.set(0, 0.5, WORLD_SIZE/2 - 15);
-    left.rotation.x = -Math.PI/2; // not necessary
-    left.rotation.z = 0;
-    left.receiveShadow = true;
-    scene.add(left);
-  }
-
-  function createCity() {
-    const matOptions = [
-      { color: 0x8ea7ff, metalness: 0.1, roughness: 0.6 },
-      { color: 0xd6c4a1, metalness: 0.0, roughness: 0.7 },
-      { color: 0x9fd1a0, metalness: 0.0, roughness: 0.65 },
-      { color: 0xffd37a, metalness: 0.05, roughness: 0.65 }
-    ];
-    for (let i=0;i<NUM_BUILDINGS;i++){
-      const w = 8 + Math.random()*28;
-      const d = 8 + Math.random()*28;
-      const h = 8 + Math.random()*120;
-      const geom = new THREE.BoxGeometry(w, h, d);
-      const mo = matOptions[Math.floor(Math.random()*matOptions.length)];
-      const mat = new THREE.MeshStandardMaterial({ color: mo.color, metalness: mo.metalness, roughness: mo.roughness });
-      const b = new THREE.Mesh(geom, mat);
-      b.castShadow = true; b.receiveShadow = true;
-      // distribute along main axis but leave central road clear
-      const side = Math.random() > 0.5 ? 1 : -1;
-      const x = (Math.random()-0.5) * (WORLD_SIZE*0.6);
-      const z = side * (200 + Math.random()*200);
-      b.position.set(x, h/2, z);
-      b.rotation.y = Math.random()*Math.PI*0.5;
-      scene.add(b);
+  (function(){
+    // If THREE is not loaded, inject script then run main.
+    function loadScript(url, cb){
+      const s = document.createElement('script');
+      s.src = url;
+      s.onload = cb;
+      s.onerror = function(){ console.error('Impossible de charger', url); cb(new Error('load error')); };
+      document.head.appendChild(s);
     }
 
-    // a row of low buildings near the player start
-    for (let i=0;i<14;i++){
-      const w = 18 + Math.random()*8;
-      const d = 20; const h = 10 + Math.random()*18;
-      const mat = new THREE.MeshStandardMaterial({ color: 0x2f3946, roughness:0.7 });
-      const b = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
-      b.position.set(-360 + i*55, h/2, 80 + Math.random()*40 - 20);
-      b.receiveShadow = true; b.castShadow = true;
-      scene.add(b);
-    }
-  }
+    function main() {
+      // Use THREE here
+      if (typeof THREE === 'undefined') {
+        console.error('Three.js non disponible');
+        return;
+      }
 
-  function createObstacles(count = 12) {
-    for (let i=0;i<count;i++){
-      const w = 24 + Math.random()*24;
-      const h = 10 + Math.random()*50;
-      const d = 10 + Math.random()*20;
-      const mat = new THREE.MeshStandardMaterial({ color: 0x6a6a6a });
-      const ob = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
-      // position along road positive z axis
-      const z = 200 + Math.random()*700;
-      const x = (Math.random()-0.5) * 220;
-      ob.position.set(x, h/2, z);
-      ob.castShadow = true; ob.receiveShadow = true;
-      scene.add(ob);
-      obstacles.push(ob);
-    }
-  }
+      // UI elements
+      const startBtn = document.getElementById('startBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const loading = document.getElementById('loading');
+      const speedEl = document.getElementById('speed');
+      const scoreEl = document.getElementById('score');
+      const mobileControls = document.getElementById('mobileControls');
+      const leftBtn = document.getElementById('leftBtn');
+      const rightBtn = document.getElementById('rightBtn');
+      const upBtn = document.getElementById('upBtn');
 
-  function createVehicle() {
-    vehicle = new THREE.Group();
-    // body
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0ec0ff, metalness: 0.3, roughness: 0.25 });
-    const body = new THREE.Mesh(new THREE.BoxGeometry(6.6,2.2,12), bodyMat);
-    body.position.set(0, 1.4, 0);
-    body.castShadow = true; body.receiveShadow = true;
-    vehicle.add(body);
-    // cabin
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(4,1.4,5), new THREE.MeshStandardMaterial({color:0x0a4f6b, metalness:0.15, roughness:0.2}));
-    cabin.position.set(0, 2.1, -0.5);
-    cabin.castShadow = true; vehicle.add(cabin);
-    // wheels (visual only)
-    const wheelGeo = new THREE.CylinderGeometry(1.1,1.1,0.9,16);
-    wheelGeo.rotateZ(Math.PI/2);
-    const wheelMat = new THREE.MeshStandardMaterial({color:0x0a0a0a, metalness:0.6, roughness:0.4});
-    const offsets = [[-2.6,0.6,4], [2.6,0.6,4], [-2.6,0.6,-4], [2.6,0.6,-4]];
-    offsets.forEach(o => {
-      const w = new THREE.Mesh(wheelGeo, wheelMat);
-      w.position.set(o[0], o[1], o[2]);
-      w.castShadow = true; vehicle.add(w);
-    });
+      // Input state
+      const keys = { forward:false, backward:false, left:false, right:false, turbo:false };
 
-    vehicle.position.set(0, 0, 10);
-    vehicle.rotation.y = Math.PI; // face +z
-    scene.add(vehicle);
+      // Scene variables
+      let renderer, scene, camera, composer;
+      let vehicle, obstacles = [], particles = [];
+      let speed = 0, score = 0;
+      let running = false;
+      let lastTime = performance.now();
 
-    // bounding box helper
-    vehicleBB = new THREE.Box3().setFromObject(vehicle);
-  }
+      // Simple audio context unlocked on gesture
+      let audioCtx = null;
+      function ensureAudio(){
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      }
 
-  // Post-processing bloom
-  function initPostProcessing() {
-    composer = new THREE.EffectComposer(renderer);
-    const renderPass = new THREE.RenderPass(scene, camera);
-    composer.addPass(renderPass);
-    const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.9, 0.4, 0.9);
-    bloomPass.threshold = 0.2;
-    bloomPass.strength = 0.9;
-    bloomPass.radius = 0.3;
-    composer.addPass(bloomPass);
-    // copy shader
-    const copyPass = new THREE.ShaderPass(THREE.CopyShader);
-    copyPass.renderToScreen = true;
-    composer.addPass(copyPass);
-  }
-
-  function applyQuality() {
-    if (!renderer) return;
-    if (uiQuality === 0) {
-      renderer.shadowMap.enabled = false;
-      renderer.setPixelRatio(1);
-      composer.passes[1].strength = 0.4;
-    } else if (uiQuality === 1) {
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-      composer.passes[1].strength = 0.7;
-    } else {
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      composer.passes[1].strength = 1.0;
-    }
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  }
-
-  // Simple collision test against obstacles using bounding boxes
-  function checkCollisions(pos) {
-    const bb = new THREE.Box3().setFromObject(vehicle);
-    const future = bb.clone().translate(new THREE.Vector3(pos.x - vehicle.position.x, pos.y - vehicle.position.y, pos.z - vehicle.position.z));
-    for (const ob of obstacles) {
-      const obb = new THREE.Box3().setFromObject(ob);
-      if (future.intersectsBox(obb)) return ob;
-    }
-    return null;
-  }
-
-  // Simple particle dust emitter
-  function spawnDust(x,z,amount=6) {
-    for (let i=0;i<amount;i++){
-      particles.push({
-        x: x + (Math.random()-0.5)*2,
-        y: 0.6 + Math.random()*0.7,
-        z: z + (Math.random()-0.5)*1.2,
-        vx: (Math.random()-0.5)*0.6,
-        vy: 0.2 + Math.random()*0.6,
-        vz: (Math.random()-0.5)*0.6,
-        life: 40 + Math.random()*40,
-        size: 0.08 + Math.random()*0.18,
-        color: 0x8a7f6e
+      // Attach keyboard
+      window.addEventListener('keydown', (e)=>{
+        if (['ArrowUp','KeyW'].includes(e.code)) keys.forward = true;
+        if (['ArrowDown','KeyS'].includes(e.code)) keys.backward = true;
+        if (['ArrowLeft','KeyA'].includes(e.code)) keys.left = true;
+        if (['ArrowRight','KeyD'].includes(e.code)) keys.right = true;
+        if (e.code === 'Space') keys.turbo = true;
       });
-    }
-  }
-
-  // Update particle positions & draw them using simple sprites
-  function updateAndDrawParticles() {
-    const ctx = renderer.getContext();
-    // We'll draw particles in WebGL via small Meshes - for performance we do simple THREE.Points would be better but for simplicity we use instanced plane geometry as points are heavy to set up shaders here.
-    // Simpler approach: create dynamic small spheres (low count). We'll instead use simple sprite approach with BufferGeometry for Points.
-    // Implement Points on first use
-    if (!scene._particlePoints) {
-      const geom = new THREE.BufferGeometry();
-      const max = 800;
-      const positions = new Float32Array(max * 3);
-      const sizes = new Float32Array(max);
-      geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      geom.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-      const mat = new THREE.PointsMaterial({ size: 14, map: generateCircleTexture(), transparent: true, depthWrite: false, color: 0xffe6cc });
-      const pts = new THREE.Points(geom, mat);
-      pts.frustumCulled = false;
-      scene.add(pts);
-      scene._particlePoints = { mesh: pts, positions, sizes, max };
-      scene._particleCount = 0;
-    }
-    // update particles array
-    for (let i = particles.length-1; i>=0; i--){
-      const p = particles[i];
-      p.vy -= 0.01;
-      p.x += p.vx;
-      p.y += p.vy;
-      p.z += p.vz;
-      p.life -= 1;
-      if (p.life <= 0) particles.splice(i,1);
-    }
-    // copy to buffer
-    const pts = scene._particlePoints;
-    const max = pts.max;
-    let i = 0;
-    for (; i < Math.min(particles.length, max); i++){
-      const p = particles[i];
-      pts.positions[3*i] = p.x;
-      pts.positions[3*i+1] = p.y;
-      pts.positions[3*i+2] = p.z;
-      pts.sizes[i] = p.size * 40; // visual scale
-    }
-    for (; i < max; i++){
-      pts.positions[3*i] = 1e9;
-      pts.positions[3*i+1] = 1e9;
-      pts.positions[3*i+2] = 1e9;
-      pts.sizes[i] = 0;
-    }
-    pts.mesh.geometry.attributes.position.needsUpdate = true;
-    pts.mesh.geometry.attributes.size.needsUpdate = true;
-  }
-
-  function generateCircleTexture() {
-    const s = 128;
-    const cnv = document.createElement('canvas'); cnv.width = s; cnv.height = s;
-    const g = cnv.getContext('2d');
-    g.clearRect(0,0,s,s);
-    const grad = g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
-    grad.addColorStop(0,'rgba(255,255,255,1)');
-    grad.addColorStop(0.2,'rgba(255,255,255,0.9)');
-    grad.addColorStop(0.5,'rgba(255,200,150,0.6)');
-    grad.addColorStop(1,'rgba(0,0,0,0)');
-    g.fillStyle = grad; g.fillRect(0,0,s,s);
-    const tex = new THREE.CanvasTexture(cnv);
-    return tex;
-  }
-
-  // Reset the scene
-  function resetScene() {
-    // remove obstacles & vehicle & particles
-    obstacles.forEach(o => scene.remove(o));
-    obstacles.length = 0;
-    powerDown();
-    spawnInitialObstacles();
-    vehicle.position.set(0,0,10);
-    vehicle.rotation.set(0,0,Math.PI);
-    score = 0;
-    scoreEl.textContent = score;
-  }
-
-  function spawnInitialObstacles() {
-    createObstacles(18);
-  }
-
-  // Simple turbo / powerdown
-  function powerDown() {
-    // no-op for now; placeholder to clear powerups if added
-  }
-
-  // Main animation loop variables
-  let lastTime = performance.now();
-  let velocity = 0;
-  let steering = 0;
-
-  function animate() {
-    requestAnimationFrame(animate);
-    const now = performance.now();
-    const dt = Math.min(40, now - lastTime) / 1000; // clamp dt
-    lastTime = now;
-
-    // controls => vehicle physics
-    const accel = (keys.forward ? 24 : (keys.backward ? -16 : 0));
-    const turbo = keys.turbo ? 1.6 : 1.0;
-    // simple acceleration integration
-    const drag = 6 + Math.abs(velocity) * 0.2;
-    velocity += (accel - Math.sign(velocity) * drag) * dt;
-    velocity *= (1 - Math.min(dt*0.5, 0.15));
-
-    // steering depends on velocity
-    if (keys.left) steering = THREE.MathUtils.lerp(steering, 0.8, 0.08);
-    else if (keys.right) steering = THREE.MathUtils.lerp(steering, -0.8, 0.08);
-    else steering = THREE.MathUtils.lerp(steering, 0, 0.06);
-
-    // apply rotation based on steering and speed
-    const speedFactor = Math.max(0.12, Math.abs(velocity)) ;
-    const deltaYaw = steering * 0.9 * dt * (velocity>0 ? 1 : -1);
-    vehicle.rotation.y += deltaYaw;
-
-    // world movement: move vehicle forward in local z
-    const forwardVec = new THREE.Vector3(0,0,1).applyQuaternion(vehicle.quaternion).multiplyScalar(velocity * turbo * dt);
-    const newPos = vehicle.position.clone().add(forwardVec);
-
-    // check collisions with obstacles
-    const collided = checkCollisions(newPos);
-    if (collided) {
-      // simple collision response: stop and bounce back a bit
-      velocity *= -0.18;
-      vehicle.position.add(new THREE.Vector3().setFromMatrixColumn(collided.matrixWorld, 0).multiplyScalar(0.01));
-      emitParticles(vehicle.position.x, vehicle.position.z, '#ff6b6b', 20);
-      sfxCrash();
-      startShake(8);
-      // increase score as penalty? no
-    } else {
-      vehicle.position.copy(newPos);
-    }
-
-    // spawn dust when moving
-    if (Math.abs(velocity) > 0.5 && Math.random() < 0.6) spawnDust(vehicle.position.x - Math.sin(vehicle.rotation.y)*1.4, vehicle.position.z - Math.cos(vehicle.rotation.y)*1.4, 2);
-
-    // auto spawn more obstacles as we progress
-    if (obstacles.length < MAX_OBSTACLES && Math.random() < 0.02) {
-      createObstacles(1);
-    }
-
-    // camera follow: third person, smooth
-    const desiredCamPos = vehicle.position.clone().add(new THREE.Vector3(0, 6, -16).applyQuaternion(vehicle.quaternion));
-    camera.position.lerp(desiredCamPos, 0.12);
-    const lookAt = vehicle.position.clone().add(new THREE.Vector3(0,2,0));
-    camera.lookAt(lookAt);
-
-    // update bounding box (optional)
-    vehicleBB = new THREE.Box3().setFromObject(vehicle);
-
-    // update particles
-    updateParticles();
-    updateAndDrawParticles();
-
-    // drawing
-    if (composer) composer.render();
-    else renderer.render(scene, camera);
-
-    // update UI
-    speedEl.textContent = Math.round(velocity * 10);
-    score += Math.floor(Math.max(0, velocity) * dt * 0.18);
-    scoreEl.textContent = score;
-
-    // decay screen shake
-    if (screenShake.intensity > 0) {
-      // restore handled in apply/restore each frame
-    }
-  }
-
-  // Basic SFX wrappers
-  function sfxCrash(){ if (!audioAllowed()) return; try { const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.type='sawtooth'; o.frequency.value = 160; g.gain.value = 0.18; o.connect(g); g.connect(audioCtx.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.12); o.stop(audioCtx.currentTime + 0.12); } catch(e){} }
-  function sfxScore(){ if (!audioAllowed()) return; try { const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.type='square'; o.frequency.value = 1200; g.gain.value = 0.06; o.connect(g); g.connect(audioCtx.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.06); o.stop(audioCtx.currentTime + 0.06); } catch(e){} }
-
-  // Audio context control
-  let audioCtx = null;
-  function ensureAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-  function audioAllowed() { return !!audioCtx; }
-
-  // generate a few obstacles near the start for feel
-  function createObstacles(n=6) {
-    for (let i=0;i<n;i++){
-      const w = 18 + Math.random()*30;
-      const h = 8 + Math.random()*60;
-      const d = 20 + Math.random()*40;
-      const mat = new THREE.MeshStandardMaterial({ color: 0x6b6b6b, roughness: 0.7 });
-      const ob = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
-      const z = 120 + Math.random()*800;
-      const x = (Math.random()-0.5) * 220;
-      ob.position.set(x, h/2, z);
-      ob.castShadow = true;
-      ob.receiveShadow = true;
-      scene.add(ob);
-      obstacles.push(ob);
-    }
-  }
-
-  // Utility: check collisions simple bounding sphere/box approx
-  function checkCollisions(newPos) {
-    // move temp vehicle to new pos & compute bbox
-    const clone = vehicle.clone();
-    clone.position.copy(newPos);
-    clone.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(clone);
-    for (const ob of obstacles) {
-      const obb = new THREE.Box3().setFromObject(ob);
-      if (box.intersectsBox(obb)) return ob;
-    }
-    return null;
-  }
-
-  function spawnDust(x, z, amount=4) {
-    spawnDust = spawnDustInner;
-    spawnDustInner(x, z, amount);
-  }
-  function spawnDustInner(x,z,amount=4) {
-    for (let i=0;i<amount;i++){
-      particles.push({
-        x: x + (Math.random()-0.5)*1.6,
-        y: 0.6 + Math.random()*0.4,
-        z: z + (Math.random()-0.5)*1.6,
-        vx: (Math.random()-0.5)*0.4,
-        vy: 0.08 + Math.random()*0.2,
-        vz: (Math.random()-0.5)*0.4,
-        life: 30 + Math.random()*40,
-        size: 0.06 + Math.random()*0.12
+      window.addEventListener('keyup', (e)=>{
+        if (['ArrowUp','KeyW'].includes(e.code)) keys.forward = false;
+        if (['ArrowDown','KeyS'].includes(e.code)) keys.backward = false;
+        if (['ArrowLeft','KeyA'].includes(e.code)) keys.left = false;
+        if (['ArrowRight','KeyD'].includes(e.code)) keys.right = false;
+        if (e.code === 'Space') keys.turbo = false;
       });
+
+      // Mobile buttons
+      function touchStartHandler(key){ return (e)=>{ e.preventDefault(); keys[key] = true; }; }
+      function touchEndHandler(key){ return (e)=>{ e.preventDefault(); keys[key] = false; }; }
+      leftBtn.addEventListener('touchstart', touchStartHandler('left')); leftBtn.addEventListener('touchend', touchEndHandler('left'));
+      rightBtn.addEventListener('touchstart', touchStartHandler('right')); rightBtn.addEventListener('touchend', touchEndHandler('right'));
+      upBtn.addEventListener('touchstart', touchStartHandler('forward')); upBtn.addEventListener('touchend', touchEndHandler('forward'));
+
+      // Start / Reset wiring
+      startBtn.addEventListener('click', ()=>{
+        ensureAudio();
+        startBtn.disabled = true;
+        loading.style.display = 'block';
+        setTimeout(()=>{ // small yield so UI updates
+          if (!renderer) initScene();
+          loading.style.display = 'none';
+          running = true;
+          lastTime = performance.now();
+          animate();
+        }, 80);
+      });
+
+      resetBtn.addEventListener('click', ()=>{
+        resetScene();
+      });
+
+      // If mobile, show mobile controls
+      if (/Mobi|Android/i.test(navigator.userAgent) || window.innerWidth < 700) {
+        mobileControls.style.display = 'flex';
+      }
+
+      // Initialize minimal scene
+      function initScene() {
+        // Renderer
+        renderer = new THREE.WebGLRenderer({ antialias:true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // Scene and camera
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0f1114);
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 5000);
+        camera.position.set(0,6,-12);
+
+        // Lights
+        const hemi = new THREE.HemisphereLight(0xbfeaff, 0x202020, 0.6);
+        scene.add(hemi);
+        const dir = new THREE.DirectionalLight(0xffffff, 1.0);
+        dir.position.set(30,80,20);
+        dir.castShadow = true;
+        dir.shadow.camera.near = 1; dir.shadow.camera.far = 500;
+        dir.shadow.camera.left = -200; dir.shadow.camera.right = 200;
+        dir.shadow.camera.top = 200; dir.shadow.camera.bottom = -200;
+        dir.shadow.mapSize.set(1024,1024);
+        scene.add(dir);
+
+        // Ground
+        const groundMat = new THREE.MeshStandardMaterial({ color:0x222224, roughness:0.8 });
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(2000,2000,1,1), groundMat);
+        ground.rotation.x = -Math.PI/2; ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Create simple city (boxes)
+        createCity();
+
+        // Create player vehicle
+        createVehicle();
+
+        // initial obstacles
+        createObstacles(16);
+
+        window.addEventListener('resize', onWindowResize);
+      }
+
+      function createCity() {
+        const colors = [0x555788, 0x8ea7ff, 0xd6c4a1, 0x9fd1a0, 0xffd37a];
+        for (let i=0;i<45;i++){
+          const w = 6 + Math.random()*26;
+          const d = 6 + Math.random()*26;
+          const h = 6 + Math.random()*80;
+          const mat = new THREE.MeshStandardMaterial({ color: colors[Math.floor(Math.random()*colors.length)], roughness:0.7 });
+          const b = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
+          b.position.set((Math.random()-0.5)*800, h/2, (Math.random()-0.5)*1200);
+          b.castShadow = true; b.receiveShadow = true;
+          scene.add(b);
+        }
+      }
+
+      function createVehicle() {
+        vehicle = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.BoxGeometry(3.2,1.2,6.0), new THREE.MeshStandardMaterial({ color:0x0ec0ff, metalness:0.2, roughness:0.3 }));
+        body.position.y = 0.9;
+        body.castShadow = true;
+        vehicle.add(body);
+        const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.0,0.9,3.0), new THREE.MeshStandardMaterial({ color:0x073e52, metalness:0.15, roughness:0.25 }));
+        cabin.position.set(0,1.4,-0.4);
+        cabin.castShadow = true; vehicle.add(cabin);
+        // simple wheels
+        const wheelGeo = new THREE.CylinderGeometry(0.6,0.6,0.8,12);
+        wheelGeo.rotateZ(Math.PI/2);
+        const wheelMat = new THREE.MeshStandardMaterial({ color:0x0b0b0b, metalness:0.8, roughness:0.4 });
+        const offsets = [[-1.4,0.4,2.4],[1.4,0.4,2.4],[-1.4,0.4,-2.4],[1.4,0.4,-2.4]];
+        for (const off of offsets){
+          const w = new THREE.Mesh(wheelGeo, wheelMat);
+          w.position.set(off[0], off[1], off[2]);
+          w.castShadow = true; vehicle.add(w);
+        }
+        vehicle.position.set(0,0,0);
+        vehicle.rotation.y = Math.PI;
+        scene.add(vehicle);
+      }
+
+      function createObstacles(count=10) {
+        for (let i=0;i<count;i++){
+          const w = 8 + Math.random()*36;
+          const d = 8 + Math.random()*36;
+          const h = 6 + Math.random()*40;
+          const mat = new THREE.MeshStandardMaterial({ color: 0x6a6a6a, roughness:0.8 });
+          const ob = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
+          const z = 60 + Math.random()*800;
+          const x = (Math.random()-0.5) * 220;
+          ob.position.set(x, h/2, z);
+          ob.castShadow = true; ob.receiveShadow = true;
+          scene.add(ob);
+          obstacles.push(ob);
+        }
+      }
+
+      function resetScene() {
+        // reset vehicle position, remove and recreate obstacles
+        vehicle.position.set(0,0,0);
+        vehicle.rotation.set(0, Math.PI, 0);
+        speed = 0; score = 0; scoreEl.textContent = score; speedEl.textContent = 0;
+        for (const ob of obstacles) scene.remove(ob);
+        obstacles.length = 0;
+        createObstacles(16);
+      }
+
+      function onWindowResize() {
+        if (!camera || !renderer) return;
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      // Simple collision using bounding boxes
+      function checkCollisionWithObstacles(nextPos) {
+        const clone = vehicle.clone();
+        clone.position.copy(nextPos);
+        clone.updateMatrixWorld(true);
+        const vbox = new THREE.Box3().setFromObject(clone);
+        for (const ob of obstacles) {
+          const obb = new THREE.Box3().setFromObject(ob);
+          if (vbox.intersectsBox(obb)) return ob;
+        }
+        return null;
+      }
+
+      // Basic particles (small spheres) - low count for stability
+      function emitParticles(x,z,color=0x8a7f6e, count=6) {
+        for (let i=0;i<count;i++){
+          const s = Math.random()*0.08 + 0.04;
+          const g = new THREE.Mesh(new THREE.SphereGeometry(s,6,6), new THREE.MeshStandardMaterial({ color: color }));
+          g.position.set(x + (Math.random()-0.5)*1.2, 0.3 + Math.random()*0.6, z + (Math.random()-0.5)*1.2);
+          g.userData.life = 20 + Math.random()*30;
+          scene.add(g);
+          particles.push(g);
+        }
+      }
+
+      function updateParticles() {
+        for (let i=particles.length-1; i>=0; i--){
+          const p = particles[i];
+          p.userData.life -= 1;
+          p.position.x += (Math.random()-0.5)*0.02;
+          p.position.z += (Math.random()-0.5)*0.02;
+          p.position.y += (Math.random()-0.6)*0.02;
+          p.material.opacity = Math.max(0, p.userData.life / 60);
+          p.material.transparent = true;
+          if (p.userData.life <= 0) { scene.remove(p); particles.splice(i,1); }
+        }
+      }
+
+      // SFX (simple beeps)
+      function beep(freq=880, dur=0.06, type='sine', gain=0.08){
+        if (!audioCtx) return;
+        try {
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.type = type; o.frequency.value = freq;
+          g.gain.value = gain;
+          o.connect(g); g.connect(audioCtx.destination);
+          o.start();
+          g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+          o.stop(audioCtx.currentTime + dur + 0.02);
+        } catch(e){ console.warn('beep fail', e); }
+      }
+
+      // crash sfx
+      function crashSfx(){ beep(160,0.12,'sawtooth',0.18); }
+
+      // Animation loop
+      let last = performance.now();
+      let velocity = 0, steering = 0;
+      function animate(){
+        if (!running) return;
+        requestAnimationFrame(animate);
+        const now = performance.now();
+        const dt = Math.min(40, now - last) / 1000;
+        last = now;
+
+        // controls -> acceleration
+        const accel = (keys.forward ? 18 : (keys.backward ? -12 : 0));
+        const turbo = keys.turbo ? 1.6 : 1.0;
+        const drag = 6 + Math.abs(velocity)*0.2;
+        velocity += (accel - Math.sign(velocity)*drag) * dt;
+        velocity *= (1 - Math.min(dt*0.5, 0.15));
+
+        // steering lerp
+        if (keys.left) steering = THREE.MathUtils.lerp(steering, 0.8, 0.08);
+        else if (keys.right) steering = THREE.MathUtils.lerp(steering, -0.8, 0.08);
+        else steering = THREE.MathUtils.lerp(steering, 0, 0.06);
+
+        // rotate vehicle
+        const deltaYaw = steering * 0.9 * dt * (velocity>0 ? 1 : -1);
+        vehicle.rotation.y += deltaYaw;
+
+        // compute forward movement
+        const forwardVec = new THREE.Vector3(0,0,1).applyQuaternion(vehicle.quaternion).multiplyScalar(velocity * turbo * dt);
+        const nextPos = vehicle.position.clone().add(forwardVec);
+
+        // collision check
+        const collided = checkCollisionWithObstacles(nextPos);
+        if (collided) {
+          // collision response
+          velocity *= -0.2;
+          vehicle.position.add(new THREE.Vector3(0,0.05,0));
+          emitParticles(vehicle.position.x, vehicle.position.z, 0xff6b6b, 12);
+          crashSfx();
+        } else {
+          vehicle.position.copy(nextPos);
+        }
+
+        // camera follow
+        const desired = vehicle.position.clone().add(new THREE.Vector3(0,6,-12).applyQuaternion(vehicle.quaternion));
+        camera.position.lerp(desired, 0.12);
+        camera.lookAt(vehicle.position.clone().add(new THREE.Vector3(0,1.8,0)));
+
+        // occasional spawning obstacles
+        if (obstacles.length < 40 && Math.random() < 0.02) createObstacles(1);
+
+        // update particles
+        updateParticles();
+
+        // render
+        renderer.render(scene, camera);
+
+        // UI
+        speedEl.textContent = Math.round(velocity * 10);
+        score += Math.max(0, velocity) * dt * 0.5;
+        scoreEl.textContent = Math.floor(score);
+      }
+
+      // expose debug start if needed
+      window.__urban = { start: ()=>{ startBtn.click(); }, reset: resetScene };
+
+      // initial preview: small canvas background (no heavy init) - already empty body background suffices
+      console.log('Prototype prêt. Clique "Démarrer".');
+    } // end main
+
+    if (typeof THREE === 'undefined') {
+      // try to load from CDN then call main
+      loadScript('https://unpkg.com/three@0.152.2/build/three.min.js', function(err){
+        if (err) {
+          document.getElementById('loading').style.display = 'none';
+          alert('Impossible de charger Three.js depuis le CDN. Vérifie ta connexion ou bloqueurs de contenu.');
+          console.error(err);
+          return;
+        }
+        main();
+      });
+    } else {
+      main();
     }
-  }
-
-  function onWindowResize() {
-    if (!camera || !renderer) return;
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    if (composer) composer.setSize(window.innerWidth, window.innerHeight);
-  }
-
-  // Ensure audio is unlocked after first gesture
-  document.addEventListener('pointerdown', function unlockAudio() {
-    try {
-      ensureAudio();
-      // create silent buffer to make sure resume works on some browsers
-      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    } catch(e){}
-    document.removeEventListener('pointerdown', unlockAudio);
-  });
-
-  // initial small scene draw to show something before start
-  (function preloadPreview(){
-    const tempRenderer = new THREE.WebGLRenderer({ antialias:true });
-    tempRenderer.setSize(640, 360); tempRenderer.setPixelRatio(1);
-    const tempScene = new THREE.Scene(); const tempCam = new THREE.PerspectiveCamera(60, 640/360, 0.1, 1000);
-    tempCam.position.set(0,6,12);
-    const g = new THREE.BoxGeometry(2,2,2); const m = new THREE.MeshStandardMaterial({color:0x0ec0ff});
-    const cube = new THREE.Mesh(g,m); tempScene.add(cube);
-    const l = new THREE.DirectionalLight(0xffffff, 1.0); l.position.set(10,10,10); tempScene.add(l);
-    const amb = new THREE.AmbientLight(0x404040, 0.8); tempScene.add(amb);
-    // append small canvas to container for preview
-    // remove previous if any
-    // do not append to DOM to keep layout simple; instead we show textual loading until real init
   })();
-
-  // Expose small debug helpers
-  window.__urban = {
-    resetScene: resetScene,
-    start: start,
-    ensureAudio: ensureAudio
-  };
-
-  // Minimal start: display instructions in console
-  console.log('Urban Drive prototype ready. Click "Démarrer" to initialize scene.');
-
   </script>
 </body>
 </html>
