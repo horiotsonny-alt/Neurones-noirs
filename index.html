@@ -1,814 +1,161 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <title>Geometry Dash — Ultimate Prototype</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    :root{
-      --bg:#1b1d22;
-      --panel: rgba(255,255,255,0.06);
-      --accent: #ffd700;
-      --ui: #ffffff;
-    }
-    html,body{height:100%;margin:0;background:var(--bg);display:flex;align-items:center;justify-content:center;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;}
-    #container{position:relative;width:900px;max-width:96vw;}
-    canvas{display:block;width:100%;height:auto;background:#2c2f3a;border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,0.6);}
-    #ui { position:absolute; left:12px; top:12px; color:var(--ui); display:flex; gap:10px; align-items:center; font-size:15px; }
-    #rightUI { position:absolute; right:12px; top:12px; color:var(--ui); text-align:right; font-size:14px; }
-    .btn { background:var(--panel); border:1px solid rgba(255,255,255,0.04); color:var(--ui); padding:6px 10px; border-radius:8px; cursor:pointer; font-size:13px; }
-    .panel { background: linear-gradient(180deg, rgba(0,0,0,0.45), rgba(255,255,255,0.02)); color:var(--ui); padding:18px 20px; border-radius:10px; text-align:center; border:1px solid rgba(255,255,255,0.04); box-shadow:0 8px 30px rgba(0,0,0,0.65); }
-    .title { font-size:20px; font-weight:700; margin-bottom:6px; }
-    .hint { font-size:13px; color:#dcdcdc; opacity:0.9; }
-    #overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
-    #mobileButtons { position:absolute; bottom:14px; left:50%; transform:translateX(-50%); display:flex; gap:8px; pointer-events:auto; }
-    .mobileBtn { padding:12px 18px; border-radius:10px; background:var(--panel); border:1px solid rgba(255,255,255,0.04); color:var(--ui); font-weight:600; }
-    #powerUI { position:absolute; left:12px; bottom:12px; color:var(--ui); font-size:14px; opacity:0.95; }
-    @media (max-width:480px){ #container{width:360px;} .title{font-size:18px} }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La flamme</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family: 'Helvetica Neue', Arial, sans-serif; }
+
+  html, body { height:100%; background: #1b1d22; color: #fff; }
+
+  body {
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+    justify-content:flex-start;
+    text-align:center;
+    padding-top:50px;
+  }
+
+  h1 {
+    font-size: 3.5rem;
+    color: #ffd700;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+  }
+
+  /* Bougie principale */
+  .candle-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 40px;
+  }
+
+  .candle {
+    position: relative;
+    width: 20px;
+    height: 100px;
+    background: #eee;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(255,255,255,0.2);
+    transition: background 0.3s;
+  }
+
+  .flame {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 40px;
+    background: radial-gradient(circle at 50% 50%, #fff 0%, #ffd700 60%, #ff4500 100%);
+    border-radius: 50%;
+    animation: flicker 1s infinite alternate;
+    filter: blur(1px);
+  }
+
+  @keyframes flicker {
+    0% { transform: translateX(-50%) scale(1,1); opacity: 0.8; }
+    25% { transform: translateX(-50%) scale(1.1,0.9); opacity: 1; }
+    50% { transform: translateX(-50%) scale(0.9,1.1); opacity: 0.9; }
+    75% { transform: translateX(-50%) scale(1,1.05); opacity: 1; }
+    100% { transform: translateX(-50%) scale(1,1); opacity: 0.8; }
+  }
+
+  p {
+    max-width: 500px;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.9);
+    font-size: 1.2rem;
+    margin-bottom: 50px;
+    padding: 0 15px;
+  }
+
+  /* Section des icônes de bougie */
+  .candles-shop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-height: 220px;
+    overflow-y: auto;
+    gap: 15px;
+    padding: 10px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    width: 150px;
+  }
+
+  .candles-shop img {
+    width: 50px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-radius: 8px;
+  }
+
+  .candles-shop img:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 15px rgba(255,255,180,0.8);
+  }
+
+  /* Scrollbar minimaliste */
+  .candles-shop::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .candles-shop::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.3);
+    border-radius: 3px;
+  }
+
+  .candles-shop::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Responsive */
+  @media (max-width:600px) {
+    h1 { font-size: 2.5rem; }
+    .candle { height: 80px; width: 16px; }
+    .flame { width: 16px; height: 32px; }
+    p { font-size: 1rem; padding: 0 15px; margin-bottom: 30px; }
+    .candles-shop { width: 120px; max-height: 150px; }
+    .candles-shop img { width: 40px; }
+  }
+</style>
 </head>
 <body>
-  <div id="container">
-    <canvas id="canvas" aria-label="Jeu Geometry Dash"></canvas>
+  <h1>La flamme</h1>
 
-    <div id="ui">
-      <div>Score: <strong id="score">0</strong></div>
-      <button id="soundToggle" class="btn" title="Activer / désactiver le son">🔊</button>
-      <button id="djToggle" class="btn" title="Activer / désactiver double jump">Double-jump: ON</button>
+  <div class="candle-container">
+    <div class="candle" id="mainCandle">
+      <div class="flame"></div>
     </div>
+  </div>
 
-    <div id="rightUI">
-      Best: <strong id="best">0</strong><br>
-      Speed: <span id="speedDisplay">1.00x</span>
-    </div>
+  <p>Un espace zen et minimaliste, inspiré par la lumière douce et la sérénité. Respirez profondément et laissez-vous apaiser.</p>
 
-    <div id="overlay">
-      <div id="menu" class="panel">
-        <div class="title">Geometry Dash — Ultimate Prototype</div>
-        <div class="hint">Espace / Flèche haut pour sauter. Tapez pour mobile. Évite les obstacles, ramasse des power‑ups.</div>
-        <div style="height:12px"></div>
-        <div style="display:flex;gap:8px;justify-content:center">
-          <button id="startBtn" class="btn">Démarrer</button>
-          <button id="demoBtn" class="btn" title="Démarrage rapide sans musique">Démarrage rapide</button>
-        </div>
-        <div style="height:12px"></div>
-        <div id="menuLeaders" class="hint"></div>
-        <div style="height:10px"></div>
-        <label class="hint">Musique: <input id="musicToggle" type="checkbox" checked></label>
-      </div>
-    </div>
-
-    <div id="mobileButtons" style="display:none;">
-      <button id="jumpBtn" class="mobileBtn">SAUT</button>
-      <button id="restartBtn" class="mobileBtn">RESTART</button>
-    </div>
-
-    <div id="powerUI"></div>
+  <div class="candles-shop" id="candlesShop">
+    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589875.png" alt="Bougie 1" title="Bougie 1" data-color="#f5e6c4">
+    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589876.png" alt="Bougie 2" title="Bougie 2" data-color="#ffd700">
+    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589877.png" alt="Bougie 3" title="Bougie 3" data-color="#ff4500">
+    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589878.png" alt="Bougie 4" title="Bougie 4" data-color="#fff">
+    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589879.png" alt="Bougie 5" title="Bougie 5" data-color="#e6e6fa">
+    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589880.png" alt="Bougie 6" title="Bougie 6" data-color="#ffa500">
   </div>
 
 <script>
-/*
-  Geometry Dash — Ultimate Prototype
-  Single file, stable and improved:
-  - Retina scaling
-  - Parallax background
-  - Patterns & obstacle types
-  - Particle pool
-  - Screen shake + flash
-  - Power-ups: invincible & x2 score
-  - Double-jump toggle
-  - WebAudio synth music & sfx (starts after first user gesture)
-  - Top5 leaderboard (localStorage)
-  - Mobile touch buttons + vibration
-*/
+  // Interaction : changer couleur de la bougie centrale
+  const mainCandle = document.getElementById('mainCandle');
+  const shopImages = document.querySelectorAll('#candlesShop img');
 
-/* ---------- Canvas + scaling ---------- */
-const CSS_W = 800;
-const CSS_H = 600;
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-
-function resizeCanvas() {
-  const DPR = window.devicePixelRatio || 1;
-  canvas.width = CSS_W * DPR;
-  canvas.height = CSS_H * DPR;
-  canvas.style.width = CSS_W + 'px';
-  canvas.style.height = CSS_H + 'px';
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-}
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
-
-/* ---------- Game state & config ---------- */
-let state = 'menu'; // menu | playing | gameover
-const groundHeight = 120;
-const gravity = 0.95;
-const jumpStrength = -16;
-const playerSize = 36;
-let baseSpeed = 4;
-let speedMultiplier = 1;
-let spawnInterval = 95;
-let spawnTimer = 0;
-let frameCount = 0;
-let score = 0;
-
-const bestKey = 'gd_ultimate_top5_v1';
-let topList = JSON.parse(localStorage.getItem(bestKey) || '[]');
-let best = topList.length ? topList[0].score : 0;
-document.getElementById('best').textContent = best;
-const scoreEl = document.getElementById('score');
-const speedDisplay = document.getElementById('speedDisplay');
-const powerUIEl = document.getElementById('powerUI');
-
-/* ---------- Player ---------- */
-const player = {
-  x: 120,
-  y: CSS_H - groundHeight - playerSize,
-  width: playerSize,
-  height: playerSize,
-  vy: 0,
-  isJumping: false,
-  doubleJumpAvailable: true,
-  hitboxInset: 6,
-  animFrame: 0,
-  animTick: 0
-};
-
-/* ---------- Parallax ---------- */
-const parallax = [
-  { speed: 0.18, color: '#1f2230', items: [] },
-  { speed: 0.45, color: '#2b2f40', items: [] },
-  { speed: 0.9, color: '#333745', items: [] }
-];
-
-function initParallax() {
-  parallax.forEach((layer, li) => {
-    layer.items = [];
-    const count = 9 + li * 3;
-    for (let i = 0; i < count; i++) {
-      layer.items.push({
-        x: i * (CSS_W / (count - 1)) + Math.random() * 300,
-        y: CSS_H - groundHeight - (40 + li * 20) - Math.random() * 40,
-        w: 80 + Math.random() * 140,
-        h: 18 + li * 18 + Math.random() * 30
-      });
-    }
+  shopImages.forEach(img => {
+    img.addEventListener('click', () => {
+      const color = img.dataset.color || '#eee';
+      mainCandle.style.background = color;
+    });
   });
-}
-initParallax();
-
-/* ---------- Particles (pool) ---------- */
-const particles = [];
-const MAX_PARTICLES = 450;
-function emitParticles(x, y, color = '#ff6b6b', count = 18) {
-  for (let i = 0; i < count; i++) {
-    if (particles.length < MAX_PARTICLES) {
-      particles.push({
-        x, y,
-        vx: (Math.random() - 0.5) * 6,
-        vy: (Math.random() - 1.6) * 6,
-        life: 40 + Math.random() * 40,
-        size: 2 + Math.random() * 4,
-        color
-      });
-    } else {
-      // recycle oldest
-      const p = particles.shift();
-      p.x = x; p.y = y;
-      p.vx = (Math.random() - 0.5) * 6;
-      p.vy = (Math.random() - 1.6) * 6;
-      p.life = 40 + Math.random() * 40;
-      p.size = 2 + Math.random() * 4;
-      p.color = color;
-      particles.push(p);
-    }
-  }
-}
-function updateParticles() {
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
-    p.vy += 0.16;
-    p.x += p.vx;
-    p.y += p.vy;
-    p.life -= 1;
-    p.size *= 0.993;
-    if (p.life <= 0 || p.size < 0.25) particles.splice(i, 1);
-  }
-}
-function drawParticles() {
-  for (const p of particles) {
-    ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 70));
-    ctx.fillStyle = p.color;
-    ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
-  }
-  ctx.globalAlpha = 1;
-}
-
-/* ---------- Screen shake & flash ---------- */
-let screenShake = { intensity: 0, decay: 0.88, dx: 0, dy: 0 };
-let screenFlash = 0;
-function startShake(intensity = 10) {
-  screenShake.intensity = Math.max(screenShake.intensity, intensity);
-}
-function applyShake() {
-  if (screenShake.intensity > 0.1) {
-    screenShake.dx = (Math.random() * 2 - 1) * screenShake.intensity;
-    screenShake.dy = (Math.random() * 2 - 1) * screenShake.intensity * 0.6;
-    ctx.save();
-    ctx.translate(screenShake.dx, screenShake.dy);
-    screenShake.intensity *= screenShake.decay;
-  } else {
-    screenShake.intensity = 0;
-  }
-}
-function restoreShake() {
-  if (screenShake.dx || screenShake.dy) {
-    ctx.restore();
-    screenShake.dx = 0; screenShake.dy = 0;
-  }
-}
-function triggerFlash(alpha = 0.85) {
-  screenFlash = Math.max(screenFlash, alpha);
-}
-
-/* ---------- WebAudio: sfx + music (synth) ---------- */
-let audioCtx = null;
-let soundOn = true;
-let musicOn = true;
-let musicTimer = null;
-
-function ensureAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-}
-function sfxBeep(freq = 880, duration = 0.06, type = 'sine', gain = 0.12) {
-  if (!soundOn) return;
-  ensureAudio();
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.type = type; o.frequency.value = freq;
-  g.gain.value = gain;
-  o.connect(g); g.connect(audioCtx.destination);
-  o.start();
-  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-  o.stop(audioCtx.currentTime + duration + 0.02);
-}
-function sfxJump() { sfxBeep(880, 0.08, 'sine', 0.12); }
-function sfxScore() { sfxBeep(1200, 0.045, 'square', 0.08); }
-function sfxCrash() { sfxBeep(160, 0.18, 'sawtooth', 0.22); }
-
-/* Music loop (simple synth loop) */
-function startMusic() {
-  if (!musicOn) return;
-  ensureAudio();
-  if (musicTimer) return;
-  const bpm = 92;
-  const step = 60 / bpm;
-  let tick = 0;
-  musicTimer = setInterval(() => {
-    if (!musicOn) return;
-    const t = audioCtx.currentTime;
-    const seq = [440, 523.25, 659.25, 880, 659.25, 523.25];
-    const freq = seq[tick % seq.length];
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = 'sine'; o.frequency.value = freq;
-    g.gain.value = 0.055;
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(t); g.gain.exponentialRampToValueAtTime(0.0001, t + step * 0.9); o.stop(t + step);
-    if (tick % 2 === 0) {
-      const o2 = audioCtx.createOscillator();
-      const g2 = audioCtx.createGain();
-      o2.type = 'sawtooth'; o2.frequency.value = 110;
-      g2.gain.value = 0.032;
-      o2.connect(g2); g2.connect(audioCtx.destination);
-      o2.start(t); g2.gain.exponentialRampToValueAtTime(0.0001, t + step * 1.0); o2.stop(t + step);
-    }
-    tick++;
-  }, step * 1000 * 0.98);
-}
-function stopMusic() {
-  if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
-}
-
-/* ---------- Power-ups (invincible, x2 score) ---------- */
-let powerUps = []; // {type, x, y, size}
-let invincibleUntil = 0;
-let scoreMultiplier = 1;
-
-function spawnPowerUp(x) {
-  const type = Math.random() < 0.55 ? 'inv' : 'x2';
-  powerUps.push({
-    type,
-    x: x || (CSS_W + 40 + Math.random() * 160),
-    y: CSS_H - groundHeight - 40 - Math.random() * 160,
-    size: 18
-  });
-}
-function updatePowerUps() {
-  for (let i = powerUps.length - 1; i >= 0; i--) {
-    const p = powerUps[i];
-    p.x -= baseSpeed * speedMultiplier;
-    if (rectsCollide(player, p)) {
-      if (p.type === 'inv') {
-        invincibleUntil = performance.now() + 4500;
-        showPowerUI('Invincible', 4500);
-        emitParticles(p.x, p.y, '#6ee7b7', 20);
-      } else {
-        scoreMultiplier = 2;
-        showPowerUI('x2 Score', 6000);
-        emitParticles(p.x, p.y, '#ffd700', 20);
-        setTimeout(() => { scoreMultiplier = 1; updatePowerUI(); }, 6000);
-      }
-      try { navigator.vibrate && navigator.vibrate(60); } catch (e) {}
-      powerUps.splice(i, 1);
-      sfxBeep(980, 0.08, 'triangle', 0.12);
-      continue;
-    }
-    if (p.x < -60) powerUps.splice(i, 1);
-  }
-}
-function drawPowerUps() {
-  for (const p of powerUps) {
-    if (p.type === 'inv') {
-      ctx.fillStyle = '#6ee7b7';
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fill();
-    } else {
-      ctx.fillStyle = '#ffd700';
-      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
-    }
-  }
-}
-function showPowerUI(text, ms) {
-  powerUIEl.textContent = text;
-  powerUIEl.style.opacity = 1;
-  setTimeout(() => { if (powerUIEl.textContent === text) powerUIEl.style.opacity = 0; }, ms || 1500);
-}
-function updatePowerUI() {
-  if (scoreMultiplier > 1) powerUIEl.textContent = 'x2 actif';
-  else if (performance.now() < invincibleUntil) powerUIEl.textContent = 'Invincible';
-  else powerUIEl.textContent = '';
-}
-
-/* ---------- Obstacles & patterns ---------- */
-let obstacles = []; // {type, x, y, width, height, baseY, phase, amp, passed}
-function spawnBlock(offset = 0) {
-  const h = 28 + Math.floor(Math.random() * 80);
-  obstacles.push({
-    type: 'block',
-    x: CSS_W + 20 + offset,
-    y: CSS_H - groundHeight - h,
-    width: 28 + Math.floor(Math.random() * 30),
-    height: h,
-    passed: false
-  });
-}
-function spawnSpike(offset = 0) {
-  obstacles.push({
-    type: 'spike',
-    x: CSS_W + 20 + offset,
-    y: CSS_H - groundHeight - 22,
-    width: 36,
-    height: 22,
-    passed: false
-  });
-}
-function spawnMoving(offset = 0) {
-  const h = 40 + Math.floor(Math.random() * 60);
-  const baseY = CSS_H - groundHeight - h;
-  obstacles.push({
-    type: 'moving',
-    x: CSS_W + 20 + offset,
-    y: baseY,
-    baseY,
-    width: 30,
-    height: h,
-    phase: Math.random() * Math.PI * 2,
-    amp: 40 + Math.random() * 60,
-    passed: false
-  });
-}
-const patterns = [
-  () => spawnBlock(0),
-  () => { spawnBlock(0); spawnBlock(60); },
-  () => { spawnSpike(0); spawnBlock(140); },
-  () => { spawnBlock(0); spawnBlock(50); spawnSpike(120); },
-  () => { spawnMoving(0); spawnBlock(120); },
-  () => { for (let i = 0; i < 3; i++) spawnBlock(i * 40); }
-];
-
-function choosePatternAndSpawn() {
-  patterns[Math.floor(Math.random() * patterns.length)]();
-  if (Math.random() < 0.08) spawnPowerUp(CSS_W + 160 + Math.random() * 80);
-}
-
-/* ---------- Input & UI wiring ---------- */
-let keys = {};
-window.addEventListener('keydown', (e) => {
-  if (e.code === 'Space' || e.code === 'ArrowUp') {
-    keys.jump = true;
-    e.preventDefault();
-    if (state === 'menu') uiStart(true);
-    if (state === 'gameover') uiRestart();
-  }
-  if (e.code === 'KeyM') {
-    toggleSound();
-  }
-});
-window.addEventListener('keyup', (e) => {
-  if (e.code === 'Space' || e.code === 'ArrowUp') keys.jump = false;
-});
-
-const startBtn = document.getElementById('startBtn');
-const demoBtn = document.getElementById('demoBtn');
-const soundToggle = document.getElementById('soundToggle');
-const djToggle = document.getElementById('djToggle');
-const musicToggle = document.getElementById('musicToggle');
-const mobileButtons = document.getElementById('mobileButtons');
-const jumpBtn = document.getElementById('jumpBtn');
-const restartBtn = document.getElementById('restartBtn');
-
-startBtn.addEventListener('click', () => uiStart(false));
-demoBtn.addEventListener('click', () => uiStart(true));
-soundToggle.addEventListener('click', toggleSound);
-djToggle.addEventListener('click', () => { allowDoubleJump = !allowDoubleJump; djToggle.textContent = 'Double-jump: ' + (allowDoubleJump ? 'ON' : 'OFF'); });
-musicToggle.addEventListener('change', () => { musicOn = musicToggle.checked; if (musicOn) startMusic(); else stopMusic(); });
-
-function updateMobileButtonsVisibility() {
-  if (window.innerWidth <= 480) mobileButtons.style.display = 'flex';
-  else mobileButtons.style.display = 'none';
-}
-updateMobileButtonsVisibility();
-window.addEventListener('resize', updateMobileButtonsVisibility);
-
-jumpBtn.addEventListener('click', () => { keys.jump = true; setTimeout(() => keys.jump = false, 120); });
-restartBtn.addEventListener('click', () => { if (state === 'gameover') uiRestart(); });
-
-canvas.addEventListener('touchstart', (e) => {
-  e.preventDefault();
-  if (state === 'menu') uiStart(true);
-  else if (state === 'gameover') uiRestart();
-  else keys.jump = true;
-  setTimeout(() => keys.jump = false, 120);
-}, { passive: false });
-
-let allowDoubleJump = true;
-
-/* ---------- Leaderboard ---------- */
-function saveScoreLocal(s) {
-  const list = JSON.parse(localStorage.getItem(bestKey) || '[]');
-  list.push({ score: s, when: Date.now() });
-  list.sort((a, b) => b.score - a.score);
-  const top = list.slice(0, 5);
-  localStorage.setItem(bestKey, JSON.stringify(top));
-  topList = top;
-  best = top.length ? top[0].score : 0;
-  document.getElementById('best').textContent = best;
-}
-function formatLeaders() {
-  const top = JSON.parse(localStorage.getItem(bestKey) || '[]');
-  if (!top.length) return 'Top: aucun score';
-  return top.map((t, i) => `${i + 1}. ${t.score}`).join('  ');
-}
-document.getElementById('menuLeaders').textContent = formatLeaders();
-
-/* ---------- Collision helper ---------- */
-function rectsCollide(a, b) {
-  const ax = a.x + (a.hitboxInset || 0);
-  const ay = a.y + (a.hitboxInset || 0);
-  const aw = a.width - 2 * (a.hitboxInset || 0);
-  const ah = a.height - 2 * (a.hitboxInset || 0);
-  const bw = b.width || b.size || 0;
-  const bh = b.height || b.size || 0;
-  return !(ax + aw < b.x || ax > b.x + bw || ay + ah < b.y || ay > b.y + bh);
-}
-
-/* ---------- Drawing helpers ---------- */
-function drawBackground() {
-  const g = ctx.createLinearGradient(0, 0, 0, CSS_H);
-  g.addColorStop(0, '#303644');
-  g.addColorStop(1, '#1b1d22');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, CSS_W, CSS_H);
-
-  parallax.forEach((layer) => {
-    ctx.fillStyle = layer.color;
-    for (const it of layer.items) {
-      let x = it.x - (frameCount * layer.speed * speedMultiplier % (CSS_W + 220));
-      const nx = ((x % (CSS_W + 300)) + (CSS_W + 300)) % (CSS_W + 300) - 150;
-      ctx.beginPath();
-      ctx.ellipse(nx + it.w / 2, it.y, it.w, it.h, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  });
-
-  // ground
-  ctx.fillStyle = '#151515';
-  ctx.fillRect(0, CSS_H - groundHeight, CSS_W, groundHeight);
-
-  // ground pattern
-  ctx.fillStyle = '#242424';
-  for (let gx = -Math.floor(frameCount * 1.6 * speedMultiplier) % 40; gx < CSS_W; gx += 40) {
-    ctx.fillRect(gx, CSS_H - 22, 20, 6);
-  }
-}
-
-function drawPlayer() {
-  // shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.fillRect(player.x + 6, player.y + player.height - 4, player.width, 8);
-
-  // animate (simple)
-  player.animTick++;
-  if (player.animTick > 6) { player.animTick = 0; player.animFrame = (player.animFrame + 1) % 4; }
-  const hue = 200 + (player.animFrame * 10);
-  const bob = Math.sin((Date.now() / 120) + player.animFrame) * 2;
-  ctx.fillStyle = `hsl(${hue} 80% 92%)`;
-  ctx.fillRect(Math.round(player.x), Math.round(player.y + bob), player.width, player.height);
-
-  // eyes
-  ctx.fillStyle = '#000';
-  ctx.fillRect(player.x + 8, player.y + 10 + bob, 6, 6);
-  ctx.fillRect(player.x + 22, player.y + 10 + bob, 6, 6);
-}
-
-function drawObstacle(ob) {
-  if (ob.type === 'block') {
-    ctx.fillStyle = '#ffd700';
-    ctx.fillRect(Math.round(ob.x), Math.round(ob.y), ob.width, ob.height);
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-    ctx.strokeRect(Math.round(ob.x) + 0.5, Math.round(ob.y) + 0.5, ob.width - 1, ob.height - 1);
-  } else if (ob.type === 'spike') {
-    ctx.fillStyle = '#ff5252';
-    const left = ob.x, top = ob.y, w = ob.width, h = ob.height;
-    const spikes = 3;
-    const sw = w / spikes;
-    for (let i = 0; i < spikes; i++) {
-      const sx = left + i * sw;
-      ctx.beginPath();
-      ctx.moveTo(sx, top + h);
-      ctx.lineTo(sx + sw / 2, top);
-      ctx.lineTo(sx + sw, top + h);
-      ctx.closePath();
-      ctx.fill();
-    }
-  } else if (ob.type === 'moving') {
-    ctx.fillStyle = '#6ee7b7';
-    ctx.fillRect(Math.round(ob.x), Math.round(ob.y), ob.width, ob.height);
-  }
-}
-
-/* ---------- Game flow: reset, start, restart, end ---------- */
-function resetState() {
-  player.x = 120;
-  player.y = CSS_H - groundHeight - playerSize;
-  player.vy = 0;
-  player.isJumping = false;
-  player.doubleJumpAvailable = allowDoubleJump;
-  obstacles = [];
-  powerUps = [];
-  particles.length = 0;
-  spawnTimer = 0;
-  frameCount = 0;
-  score = 0;
-  baseSpeed = 4;
-  speedMultiplier = 1;
-  spawnInterval = 95;
-  invincibleUntil = 0;
-  scoreMultiplier = 1;
-  updatePowerUI();
-  initParallax();
-  scoreEl.textContent = score;
-  speedDisplay.textContent = speedMultiplier.toFixed(2) + 'x';
-  screenFlash = 0;
-}
-
-function startGame(startSilent = false) {
-  // start music after user gesture if allowed
-  if (!startSilent) { ensureAudio(); if (musicOn) startMusic(); }
-  resetState();
-  state = 'playing';
-  document.getElementById('overlay').style.pointerEvents = 'none';
-  document.getElementById('overlay').style.opacity = '0';
-  document.getElementById('menu').style.display = 'none';
-  requestAnimationFrame(loop);
-}
-
-function restartGame() {
-  if (musicOn) startMusic();
-  resetState();
-  state = 'playing';
-  document.getElementById('overlay').style.pointerEvents = 'none';
-  document.getElementById('overlay').style.opacity = '0';
-  document.getElementById('menu').style.display = 'none';
-  requestAnimationFrame(loop);
-}
-
-function endGame() {
-  if (performance.now() < invincibleUntil) return; // if invincible, ignore
-  state = 'gameover';
-  sfxCrash();
-  emitParticles(player.x + player.width / 2, player.y + player.height / 2, '#ff5252', 28);
-  startShake(14);
-  triggerFlash(0.95);
-  try { navigator.vibrate && navigator.vibrate([120, 40, 80]); } catch (e) {}
-  saveScoreLocal(score);
-  stopMusic();
-  // show panel after short delay
-  setTimeout(showGameOverPanel, 220);
-}
-
-/* ---------- Update physics / game logic ---------- */
-function updateGame() {
-  frameCount++;
-
-  if (frameCount % 240 === 0) {
-    speedMultiplier += 0.03;
-    if (spawnInterval > 42) spawnInterval -= 1;
-  }
-  speedDisplay.textContent = speedMultiplier.toFixed(2) + 'x';
-
-  updatePowerUI();
-
-  // input / jump
-  if (keys.jump) {
-    if (!player.isJumping) {
-      player.vy = jumpStrength;
-      player.isJumping = true;
-      player.doubleJumpAvailable = allowDoubleJump;
-      sfxJump();
-      emitParticles(player.x + player.width / 2, player.y + player.height, '#ffd700', 10);
-    } else if (player.isJumping && player.doubleJumpAvailable && allowDoubleJump) {
-      player.vy = jumpStrength * 0.84;
-      player.doubleJumpAvailable = false;
-      sfxJump();
-      emitParticles(player.x + player.width / 2, player.y + player.height / 2, '#6ee7b7', 12);
-    }
-    keys.jump = false;
-  }
-
-  // physics
-  player.vy += gravity;
-  player.y += player.vy;
-  const floorY = CSS_H - groundHeight - player.height;
-  if (player.y > floorY) {
-    player.y = floorY;
-    player.vy = 0;
-    player.isJumping = false;
-    player.doubleJumpAvailable = allowDoubleJump;
-  }
-
-  // obstacles update & collisions
-  for (let i = obstacles.length - 1; i >= 0; i--) {
-    const ob = obstacles[i];
-    if (ob.type === 'moving') {
-      ob.phase += 0.06;
-      ob.y = ob.baseY + Math.sin(ob.phase) * ob.amp;
-    }
-    ob.x -= baseSpeed * speedMultiplier * (1 + (ob.speedMod || 0));
-
-    // collision only when not invincible
-    if (!(performance.now() < invincibleUntil) && rectsCollide(player, ob)) {
-      endGame();
-      return;
-    }
-
-    if (!ob.passed && ob.x + ob.width < player.x) {
-      ob.passed = true;
-      score += 1 * scoreMultiplier;
-      scoreEl.textContent = score;
-      sfxScore();
-      emitParticles(player.x, player.y + 8, '#ffd700', 8);
-    }
-
-    if (ob.x + ob.width < -60) obstacles.splice(i, 1);
-  }
-
-  // update power-ups
-  updatePowerUps();
-
-  // spawn logic
-  spawnTimer++;
-  if (spawnTimer >= spawnInterval) {
-    spawnTimer = 0;
-    if (Math.random() < 0.67) choosePatternAndSpawn();
-    else spawnBlock(0);
-  }
-
-  // occasional random power-up
-  if (Math.random() < 0.004 && powerUps.length < 2) spawnPowerUp();
-
-  updateParticles();
-  screenFlash = Math.max(0, screenFlash - 0.06);
-}
-
-/* ---------- Draw ---------- */
-function draw() {
-  applyShake();
-
-  drawBackground();
-
-  for (const ob of obstacles) drawObstacle(ob);
-  drawPowerUps();
-  drawPlayer();
-  drawParticles();
-
-  restoreShake();
-
-  if (screenFlash > 0) {
-    ctx.fillStyle = `rgba(255,255,255,${screenFlash * 0.55})`;
-    ctx.fillRect(0, 0, CSS_W, CSS_H);
-  }
-}
-
-/* ---------- Main loop ---------- */
-let rafId = null;
-function loop() {
-  if (state !== 'playing') return;
-  updateGame();
-  draw();
-  rafId = requestAnimationFrame(loop);
-}
-
-/* ---------- UI helpers ---------- */
-function uiStart(silent = false) {
-  // ensure audio unlocked after first interaction
-  try { ensureAudio(); } catch (e) {}
-  startGame(silent);
-}
-function uiRestart() {
-  restartGame();
-}
-function showGameOverPanel() {
-  const overlay = document.getElementById('overlay');
-  const menu = document.getElementById('menu');
-  overlay.style.pointerEvents = 'auto';
-  overlay.style.opacity = '1';
-  menu.style.display = 'block';
-  menu.innerHTML = `
-    <div class="title">Game Over</div>
-    <div class="hint">Score: <strong>${score}</strong></div>
-    <div style="height:8px"></div>
-    <div class="hint">Best: <strong>${best}</strong></div>
-    <div style="height:10px"></div>
-    <button id="restartNow" class="btn">Recommencer</button>
-    <div style="height:8px"></div>
-    <div class="hint">${formatLeaders()}</div>
-    <div style="height:8px"></div>
-    <div class="hint">Appuie Espace / Tape pour recommencer</div>
-  `;
-  document.getElementById('restartNow').addEventListener('click', uiRestart);
-}
-
-/* ---------- Leaderboard ---------- */
-function formatLeaders() {
-  const top = JSON.parse(localStorage.getItem(bestKey) || '[]');
-  if (!top.length) return 'Top: aucun score';
-  return top.map((t, i) => `${i + 1}. ${t.score}`).join('  ');
-}
-document.getElementById('menuLeaders').textContent = formatLeaders();
-
-/* ---------- Sound toggle ---------- */
-function toggleSound() {
-  soundOn = !soundOn;
-  soundToggle.textContent = soundOn ? '🔊' : '🔈';
-  if (soundOn && audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-}
-
-/* ---------- Save score ---------- */
-function saveScoreLocal(s) {
-  const list = JSON.parse(localStorage.getItem(bestKey) || '[]');
-  list.push({ score: s, when: Date.now() });
-  list.sort((a, b) => b.score - a.score);
-  const top = list.slice(0, 5);
-  localStorage.setItem(bestKey, JSON.stringify(top));
-  topList = top;
-  best = top.length ? top[0].score : 0;
-  document.getElementById('best').textContent = best;
-}
-
-/* ---------- Visibility pause ---------- */
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden && rafId) { cancelAnimationFrame(rafId); rafId = null; }
-  else if (!document.hidden && state === 'playing' && !rafId) rafId = requestAnimationFrame(loop);
-});
-
-/* ---------- Init UI state ---------- */
-document.getElementById('menuLeaders').textContent = formatLeaders();
-soundToggle.textContent = soundOn ? '🔊' : '🔈';
-djToggle.textContent = 'Double-jump: ' + (allowDoubleJump ? 'ON' : 'OFF');
-document.getElementById('best').textContent = best;
-
-/* ---------- Expose helpers for debug in console ---------- */
-window.__gd = {
-  startGame: () => uiStart(false),
-  startDemo: () => uiStart(true),
-  resetState,
-  emitParticles
-};
-
-/* ---------- End of script ---------- */
 </script>
 </body>
 </html>
