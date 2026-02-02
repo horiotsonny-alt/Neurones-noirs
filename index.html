@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <title>Geometry Dash - Amélioré</title>
+  <title>Geometry Dash - Amélioré (stable)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root{--ui-color:#fff;--bg:#202228;--panel:#2b2b2b;--accent:#ffd700}
@@ -23,7 +23,7 @@
 </head>
 <body>
   <div id="container">
-    <canvas id="canvas" aria-label="Jeu Geometry Dash amélioré"></canvas>
+    <canvas id="canvas" aria-label="Jeu Geometry Dash stable"></canvas>
 
     <div id="ui">
       <div>Score: <strong id="score">0</strong></div>
@@ -38,7 +38,7 @@
 
     <div id="overlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:auto;">
       <div id="menu" class="panel">
-        <div class="big">Geometry Dash - Amélioré</div>
+        <div class="big">Geometry Dash - Stable</div>
         <div class="small">Espace / ↑ = sauter. Tape l'écran sur mobile.</div>
         <div style="height:12px"></div>
         <button id="startBtn" class="btn">Démarrer</button>
@@ -58,346 +58,643 @@
   </div>
 
 <script>
-/* Geometry Dash amélioré - unique file
-   Améliorations ajoutées:
-   - Musique de fond générée (WebAudio)
-   - Power-ups (invincible, x2 score)
-   - Patterns d'obstacles (séquences)
-   - Pool de particules optimisé
-   - Screen-flash au crash
-   - Vibration mobile (navigator.vibrate)
-   - Top5 affiché dans le menu
+/* Single-file stable version with improvements:
+   - parallax, obstacles, patterns
+   - power-ups (invincible / x2)
+   - particles pool
+   - screen shake + flash
+   - WebAudio music + fx (start/stop properly)
+   - double-jump toggle, mobile support, top5 localStorage
 */
 
 /* ===== Canvas setup (retina friendly) ===== */
 const CSS_W = 800, CSS_H = 600;
-const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
-function setupCanvas(){ const DPR = devicePixelRatio || 1; canvas.width = CSS_W*DPR; canvas.height = CSS_H*DPR; canvas.style.width = CSS_W+'px'; canvas.style.height = CSS_H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0); }
-setupCanvas(); window.addEventListener('resize', setupCanvas);
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+function setupCanvas(){
+  const DPR = window.devicePixelRatio || 1;
+  canvas.width = CSS_W * DPR;
+  canvas.height = CSS_H * DPR;
+  canvas.style.width = CSS_W + 'px';
+  canvas.style.height = CSS_H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+setupCanvas();
+window.addEventListener('resize', setupCanvas);
 
-/* ===== Game vars ===== */
-let state = 'menu'; // menu|playing|gameover
-const groundHeight = 120, gravity = 0.95, jumpStrength = -16, playerSize = 36;
-let baseSpeed = 4, speedMultiplier = 1, spawnInterval = 95, spawnTimer = 0;
-let obstacles = [], frameCount = 0, score = 0;
-const bestKey = 'gd_full_top5_v2';
+/* ===== Game state ===== */
+let state = 'menu'; // menu | playing | gameover
+const groundHeight = 120;
+const gravity = 0.95;
+const jumpStrength = -16;
+const playerSize = 36;
+let baseSpeed = 4;
+let speedMultiplier = 1;
+let spawnInterval = 95;
+let spawnTimer = 0;
+let obstacles = [];
+let frameCount = 0;
+let score = 0;
+const bestKey = 'gd_stable_top5_v1';
 let topList = JSON.parse(localStorage.getItem(bestKey) || '[]');
 let best = topList.length ? topList[0].score : 0;
 document.getElementById('best').textContent = best;
-const scoreEl = document.getElementById('score'), speedDisplay = document.getElementById('speedDisplay');
+const scoreEl = document.getElementById('score');
+const speedDisplay = document.getElementById('speedDisplay');
 
-/* Player */
-const player = { x:120, y:CSS_H-groundHeight-playerSize, width:playerSize, height:playerSize, vy:0, isJumping:false, doubleJumpAvailable:true, hitboxInset:6, animFrame:0, animTick:0 };
+/* ===== Player ===== */
+const player = {
+  x: 120,
+  y: CSS_H - groundHeight - playerSize,
+  width: playerSize,
+  height: playerSize,
+  vy: 0,
+  isJumping: false,
+  doubleJumpAvailable: true,
+  hitboxInset: 6,
+  animFrame: 0,
+  animTick: 0
+};
 
-/* Parallax */
-const parallax = [{speed:0.2,color:'#1d1f2a',items:[]},{speed:0.4,color:'#2a2d3b',items:[]},{speed:0.75,color:'#333744',items:[]}];
-function initParallax(){ parallax.forEach((layer,li)=>{ layer.items=[]; const count=8+li*4; for(let i=0;i<count;i++){ layer.items.push({ x:i*(CSS_W/(count-1))+Math.random()*200, y:CSS_H-groundHeight-(30+li*20)-Math.random()*40, w:80+Math.random()*160, h:20+li*20+Math.random()*40 }); } }); }
+/* ===== Parallax ===== */
+const parallax = [
+  { speed: 0.2, color: '#1d1f2a', items: [] },
+  { speed: 0.4, color: '#2a2d3b', items: [] },
+  { speed: 0.75, color: '#333744', items: [] }
+];
+function initParallax(){
+  parallax.forEach((layer, li) => {
+    layer.items = [];
+    const count = 8 + li * 4;
+    for (let i = 0; i < count; i++) {
+      layer.items.push({
+        x: i * (CSS_W / (count - 1)) + Math.random() * 200,
+        y: CSS_H - groundHeight - (30 + li * 20) - Math.random() * 40,
+        w: 80 + Math.random() * 160,
+        h: 20 + li * 20 + Math.random() * 40
+      });
+    }
+  });
+}
 initParallax();
 
-/* ===== Particle pool (optimisé) ===== */
-const particles = []; const MAX_PARTICLES = 400;
-function createParticles(x,y,color='#ff5252',count=20){
-  for(let i=0;i<count;i++){
-    if(particles.length < MAX_PARTICLES){
-      particles.push({x,y,vx:(Math.random()-0.5)*6,vy:(Math.random()-1.5)*6,life:40+Math.random()*40,size:2+Math.random()*4,color});
+/* ===== Particles pool ===== */
+const particles = [];
+const MAX_PARTICLES = 400;
+function createParticles(x, y, color = '#ff5252', count = 18) {
+  for (let i = 0; i < count; i++) {
+    if (particles.length < MAX_PARTICLES) {
+      particles.push({
+        x, y,
+        vx: (Math.random() - 0.5) * 6,
+        vy: (Math.random() - 1.5) * 6,
+        life: 40 + Math.random() * 40,
+        size: 2 + Math.random() * 4,
+        color
+      });
     } else {
-      // recycler un élément (écrase le plus vieux)
+      // recycle oldest
       const p = particles.shift();
-      p.x = x; p.y = y; p.vx = (Math.random()-0.5)*6; p.vy = (Math.random()-1.5)*6; p.life = 40+Math.random()*40; p.size = 2+Math.random()*4; p.color = color;
+      p.x = x; p.y = y; p.vx = (Math.random() - 0.5) * 6; p.vy = (Math.random() - 1.5) * 6;
+      p.life = 40 + Math.random() * 40; p.size = 2 + Math.random() * 4; p.color = color;
       particles.push(p);
     }
   }
 }
-function updateParticles(){ for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.vy += 0.18; p.x += p.vx; p.y += p.vy; p.life -= 1; p.size *= 0.99; if(p.life<=0||p.size<0.3) particles.splice(i,1); } }
-function drawParticles(){ for(const p of particles){ ctx.globalAlpha = Math.max(0, Math.min(1, p.life/70)); ctx.fillStyle = p.color; ctx.fillRect(Math.round(p.x),Math.round(p.y),p.size,p.size); } ctx.globalAlpha = 1; }
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.vy += 0.18;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= 1;
+    p.size *= 0.99;
+    if (p.life <= 0 || p.size < 0.3) particles.splice(i, 1);
+  }
+}
+function drawParticles() {
+  for (const p of particles) {
+    ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 70));
+    ctx.fillStyle = p.color;
+    ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+  }
+  ctx.globalAlpha = 1;
+}
 
-/* ===== Screen flash & shake ===== */
-let screenShake = { intensity:0, decay:0.88, dx:0, dy:0 }, screenFlashAlpha = 0;
-function startShake(intensity=10){ screenShake.intensity = Math.max(screenShake.intensity, intensity); }
-function applyShake(){ if(screenShake.intensity>0.1){ screenShake.dx = (Math.random()*2-1)*screenShake.intensity; screenShake.dy = (Math.random()*2-1)*screenShake.intensity*0.6; ctx.save(); ctx.translate(screenShake.dx, screenShake.dy); screenShake.intensity *= screenShake.decay; } else screenShake.intensity = 0; }
-function restoreShake(){ if(screenShake.dx||screenShake.dy) { ctx.restore(); screenShake.dx = screenShake.dy = 0; } }
-function triggerFlash(alpha=0.85){ screenFlashAlpha = Math.max(screenFlashAlpha, alpha); }
+/* ===== Screen shake & flash ===== */
+let screenShake = { intensity: 0, decay: 0.88, dx: 0, dy: 0 };
+let screenFlashAlpha = 0;
+function startShake(intensity = 10) {
+  screenShake.intensity = Math.max(screenShake.intensity, intensity);
+}
+function applyShake() {
+  if (screenShake.intensity > 0.1) {
+    screenShake.dx = (Math.random() * 2 - 1) * screenShake.intensity;
+    screenShake.dy = (Math.random() * 2 - 1) * screenShake.intensity * 0.6;
+    ctx.save();
+    ctx.translate(screenShake.dx, screenShake.dy);
+    screenShake.intensity *= screenShake.decay;
+  } else {
+    screenShake.intensity = 0;
+  }
+}
+function restoreShake() {
+  if (screenShake.dx || screenShake.dy) {
+    ctx.restore();
+    screenShake.dx = screenShake.dy = 0;
+  }
+}
+function triggerFlash(alpha = 0.9) {
+  screenFlashAlpha = Math.max(screenFlashAlpha, alpha);
+}
 
-/* ===== Audio: WebAudio (music + fx) ===== */
-let audioCtx = null, soundOn = true, musicOn = true;
-function ensureAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-function playBeep(freq=880,dur=0.06,type='sine',gain=0.12){ if(!soundOn) return; ensureAudio(); const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.type=type; o.frequency.value=freq; g.gain.value = gain; o.connect(g); g.connect(audioCtx.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+dur); o.stop(audioCtx.currentTime+dur+0.02); }
-function playJump(){ playBeep(880,0.08,'sine',0.12); }
-function playScore(){ playBeep(1200,0.05,'square',0.08); }
-function playCrash(){ playBeep(160,0.16,'sawtooth',0.22); }
-
-/* Music generator: simple looped arpeggio + bass */
+/* ===== WebAudio fx + music ===== */
+let audioCtx = null;
+let soundOn = true;
+let musicOn = true;
 let musicIntervalId = null;
-function startMusic(){
-  if(!musicOn) return;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function playBeep(freq = 880, dur = 0.06, type = 'sine', gain = 0.12) {
+  if (!soundOn) return;
   ensureAudio();
-  if(musicIntervalId) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.value = gain;
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start();
+  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+  o.stop(audioCtx.currentTime + dur + 0.02);
+}
+function playJump() { playBeep(880, 0.08, 'sine', 0.12); }
+function playScore() { playBeep(1200, 0.045, 'square', 0.08); }
+function playCrash() { playBeep(160, 0.18, 'sawtooth', 0.22); }
+
+function startMusic() {
+  if (!musicOn) return;
+  ensureAudio();
+  if (musicIntervalId) return;
+  let tick = 0;
   const bpm = 90;
-  const step = 60/bpm; // seconds
-  let tick=0;
-  musicIntervalId = setInterval(()=> {
-    if(!musicOn) return;
+  const stepMs = (60 / bpm) * 1000;
+  musicIntervalId = setInterval(() => {
+    if (!musicOn) return;
     const t = audioCtx.currentTime;
-    // simple melody (sequence of frequencies)
-    const mel = [440, 523.25, 659.25, 880, 659.25, 523.25];
-    const freq = mel[tick % mel.length];
-    // melody tone
-    const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+    const melody = [440, 523.25, 659.25, 880, 659.25, 523.25];
+    const freq = melody[tick % melody.length];
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
     o.type = 'sine'; o.frequency.value = freq;
     g.gain.value = 0.06;
     o.connect(g); g.connect(audioCtx.destination);
-    o.start(t); g.gain.exponentialRampToValueAtTime(0.0001, t + step*0.9); o.stop(t + step);
-    // bass on every 2 ticks
-    if(tick % 2 === 0){
-      const o2 = audioCtx.createOscillator(); const g2 = audioCtx.createGain();
-      o2.type='sawtooth'; o2.frequency.value = 110;
+    o.start(t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9 * (stepMs/1000)); o.stop(t + (stepMs/1000));
+    if (tick % 2 === 0) {
+      const o2 = audioCtx.createOscillator(), g2 = audioCtx.createGain();
+      o2.type = 'sawtooth'; o2.frequency.value = 110;
       g2.gain.value = 0.035;
       o2.connect(g2); g2.connect(audioCtx.destination);
-      o2.start(t); g2.gain.exponentialRampToValueAtTime(0.0001, t + step*1.6); o2.stop(t + step*1.1);
+      o2.start(t); g2.gain.exponentialRampToValueAtTime(0.0001, t + 1.1 * (stepMs/1000)); o2.stop(t + (stepMs/1000));
     }
     tick++;
-  }, 600); // approx step length; not sample-accurate but fine for prototype
+  }, stepMs * 0.98);
 }
-function stopMusic(){ if(musicIntervalId){ clearInterval(musicIntervalId); musicIntervalId = null; } }
+function stopMusic() {
+  if (musicIntervalId) { clearInterval(musicIntervalId); musicIntervalId = null; }
+}
 
 /* ===== Power-ups ===== */
-let powerUps = []; // objects: {type:'inv'|'x2', x,y, size, ttl}
-let invincibleUntil = 0, scoreMultiplier = 1, powerUIEl = document.getElementById('powerUI');
-function spawnPowerUp(x){
-  const r = Math.random();
-  const type = r < 0.5 ? 'inv' : 'x2';
-  powerUps.push({type, x: x || (CSS_W + 30 + Math.random()*80), y: CSS_H - groundHeight - 60 - Math.random()*160, size: 18, ttl: 1000});
+let powerUps = []; // {type:'inv'|'x2', x, y, size}
+let invincibleUntil = 0;
+let scoreMultiplier = 1;
+const powerUIEl = document.getElementById('powerUI');
+function spawnPowerUp(x) {
+  const type = Math.random() < 0.5 ? 'inv' : 'x2';
+  powerUps.push({
+    type,
+    x: x || (CSS_W + 40 + Math.random() * 120),
+    y: CSS_H - groundHeight - 60 - Math.random() * 120,
+    size: 18
+  });
 }
-function updatePowerUps(){
-  for(let i=powerUps.length-1;i>=0;i--){
+function updatePowerUps() {
+  for (let i = powerUps.length - 1; i >= 0; i--) {
     const p = powerUps[i];
     p.x -= baseSpeed * speedMultiplier;
-    if(rectsCollide({x:player.x,y:player.y,width:player.width,height:player.height,hitboxInset:player.hitboxInset}, p)){
-      // pickup
-      if(p.type === 'inv'){ invincibleUntil = performance.now() + 4500; showPowerUI('Invincible', 4500); createParticles(p.x,p.y,'#6ee7b7',18); }
-      else if(p.type === 'x2'){ scoreMultiplier = 2; setTimeout(()=>{ scoreMultiplier = 1; updatePowerUI(); }, 6000); showPowerUI('x2 Score', 6000); createParticles(p.x,p.y,'#ffd700',18); }
-      try{ navigator.vibrate && navigator.vibrate(60); }catch(e){}
-      powerUps.splice(i,1);
-      playBeep(980,0.08,'triangle',0.12);
+    if (rectsCollide(player, p)) {
+      if (p.type === 'inv') {
+        invincibleUntil = performance.now() + 4500;
+        showPowerUI('Invincible', 4500);
+        createParticles(p.x, p.y, '#6ee7b7', 18);
+      } else {
+        scoreMultiplier = 2;
+        showPowerUI('x2 Score', 6000);
+        createParticles(p.x, p.y, '#ffd700', 18);
+        setTimeout(() => { scoreMultiplier = 1; updatePowerUI(); }, 6000);
+      }
+      try { navigator.vibrate && navigator.vibrate(60); } catch (e) {}
+      powerUps.splice(i, 1);
+      playBeep(980, 0.08, 'triangle', 0.12);
       continue;
     }
-    if(p.x < -40) powerUps.splice(i,1);
+    if (p.x < -40) powerUps.splice(i, 1);
   }
 }
-function drawPowerUps(){
-  for(const p of powerUps){
-    if(p.type === 'inv'){ ctx.fillStyle = '#6ee7b7'; ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill(); ctx.fillStyle='rgba(255,255,255,0.06)'; ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size*0.18); }
-    else { ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.rect(p.x-p.size/2,p.y-p.size/2,p.size,p.size); ctx.fill(); }
+function drawPowerUps() {
+  for (const p of powerUps) {
+    if (p.type === 'inv') {
+      ctx.fillStyle = '#6ee7b7';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = '#ffd700';
+      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    }
   }
 }
-function showPowerUI(text, ms){
+function showPowerUI(text, ms) {
   powerUIEl.textContent = text;
   powerUIEl.style.opacity = 1;
-  setTimeout(()=> { if(powerUIEl.textContent === text) powerUIEl.style.opacity = 0; }, ms || 1500);
+  setTimeout(() => { if (powerUIEl.textContent === text) powerUIEl.style.opacity = 0; }, ms || 1500);
 }
-function updatePowerUI(){ powerUIEl.textContent = scoreMultiplier>1 ? 'x2 actif' : (performance.now() < invincibleUntil ? 'Invincible' : ''); }
+function updatePowerUI() {
+  if (scoreMultiplier > 1) powerUIEl.textContent = 'x2 actif';
+  else if (performance.now() < invincibleUntil) powerUIEl.textContent = 'Invincible';
+  else powerUIEl.textContent = '';
+}
 
-/* ===== Obstacles patterns (level design) ===== */
-const patterns = [
-  // single block
-  () => spawnBlock(0),
-  // two blocks close
-  () => { spawnBlock(0); spawnBlock(60); },
-  // spike then block
-  () => { spawnSpike(0); spawnBlock(140); },
-  // gap (no spawn) - create a longer gap by skipping spawn
-  () => { /* gap */ spawnInterval += 10; setTimeout(()=> spawnInterval -= 10, 180); },
-  // moving obstacle + small block
-  () => { spawnMoving(0); spawnBlock(120); },
-  // long floor of blocks (short platform)
-  () => { for(let i=0;i<3;i++) spawnBlock(i*40); }
-];
-function choosePatternAndSpawn(){
-  const r = Math.random();
-  // bias for difficulty as speed increases
-  const idx = Math.floor(Math.random()*patterns.length);
-  patterns[idx]();
-  // small chance to spawn a power-up near the pattern
-  if(Math.random() < 0.08) spawnPowerUp(CSS_W + 160 + Math.random()*80);
+/* ===== Obstacles & patterns ===== */
+function spawnBlock(offset = 0) {
+  const h = 28 + Math.floor(Math.random() * 80);
+  obstacles.push({
+    type: 'block',
+    x: CSS_W + 20 + offset,
+    y: CSS_H - groundHeight - h,
+    width: 28 + Math.floor(Math.random() * 30),
+    height: h,
+    passed: false
+  });
 }
-function spawnBlock(offset){
-  const h = 28 + Math.floor(Math.random()*80);
-  obstacles.push({type:'block', x: CSS_W + offset + 20, y: CSS_H - groundHeight - h, width: 28 + Math.floor(Math.random()*30), height: h, speedMod:0, passed:false});
+function spawnSpike(offset = 0) {
+  obstacles.push({
+    type: 'spike',
+    x: CSS_W + 20 + offset,
+    y: CSS_H - groundHeight - 22,
+    width: 36,
+    height: 22,
+    passed: false
+  });
 }
-function spawnSpike(offset){
-  obstacles.push({type:'spike', x: CSS_W + offset + 20, y: CSS_H - groundHeight - 22, width:36, height:22, passed:false});
-}
-function spawnMoving(offset){
-  const h = 40 + Math.floor(Math.random()*60);
+function spawnMoving(offset = 0) {
+  const h = 40 + Math.floor(Math.random() * 60);
   const baseY = CSS_H - groundHeight - h;
-  obstacles.push({type:'moving', x: CSS_W + offset + 20, y: baseY, baseY: baseY, width:30, height:h, phase:Math.random()*Math.PI*2, amp:40+Math.random()*60, passed:false});
+  obstacles.push({
+    type: 'moving',
+    x: CSS_W + 20 + offset,
+    y: baseY,
+    baseY,
+    width: 30, height: h,
+    phase: Math.random() * Math.PI * 2,
+    amp: 40 + Math.random() * 60,
+    passed: false
+  });
+}
+const patterns = [
+  () => spawnBlock(0),
+  () => { spawnBlock(0); spawnBlock(60); },
+  () => { spawnSpike(0); spawnBlock(140); },
+  () => { spawnBlock(0); spawnBlock(50); spawnSpike(120); },
+  () => { spawnMoving(0); spawnBlock(120); },
+  () => { for (let i = 0; i < 3; i++) spawnBlock(i * 40); }
+];
+function choosePatternAndSpawn() {
+  const idx = Math.floor(Math.random() * patterns.length);
+  patterns[idx]();
+  if (Math.random() < 0.08) spawnPowerUp(CSS_W + 140 + Math.random() * 80);
 }
 
-/* ===== Input & UI ===== */
+/* ===== Input + UI bindings ===== */
 let keys = {};
-window.addEventListener('keydown', e=>{
-  if(e.code === 'Space' || e.code === 'ArrowUp'){ keys.jump = true; e.preventDefault(); if(state==='menu') startGame(); if(state==='gameover') restartGame(); }
-  if(e.code === 'KeyM') toggleSound();
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    keys.jump = true;
+    e.preventDefault();
+    if (state === 'menu') startGame();
+    if (state === 'gameover') restartGame();
+  }
+  if (e.code === 'KeyM') toggleSound();
 });
-window.addEventListener('keyup', e=>{ if(e.code==='Space'||e.code==='ArrowUp') keys.jump = false; });
+window.addEventListener('keyup', (e) => { if (e.code === 'Space' || e.code === 'ArrowUp') keys.jump = false; });
 
-const mobileBtns = document.getElementById('mobileButtons'), jumpBtn = document.getElementById('jumpBtn'), restartBtn = document.getElementById('restartBtn');
-function updateMobileButtonsVisibility(){ if(window.innerWidth <= 480) mobileBtns.style.display = 'flex'; else mobileBtns.style.display = 'none'; }
-updateMobileButtonsVisibility(); window.addEventListener('resize', updateMobileButtonsVisibility);
-canvas.addEventListener('touchstart', e=>{ e.preventDefault(); if(state==='menu') startGame(); else if(state==='gameover') restartGame(); else if(state==='playing'){ keys.jump = true; setTimeout(()=> keys.jump = false, 120);} }, {passive:false});
-jumpBtn.addEventListener('click', ()=>{ keys.jump = true; setTimeout(()=> keys.jump = false, 120); });
-restartBtn.addEventListener('click', ()=>{ if(state==='gameover') restartGame(); });
+const mobileBtns = document.getElementById('mobileButtons');
+const jumpBtn = document.getElementById('jumpBtn');
+const restartBtn = document.getElementById('restartBtn');
+function updateMobileButtonsVisibility() {
+  if (window.innerWidth <= 480) mobileBtns.style.display = 'flex';
+  else mobileBtns.style.display = 'none';
+}
+updateMobileButtonsVisibility();
+window.addEventListener('resize', updateMobileButtonsVisibility);
 
-const overlay = document.getElementById('overlay'), menu = document.getElementById('menu'), startBtn = document.getElementById('startBtn');
-const soundToggle = document.getElementById('soundToggle'), djToggle = document.getElementById('djToggle'), musicToggle = document.getElementById('musicToggle');
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  if (state === 'menu') startGame();
+  else if (state === 'gameover') restartGame();
+  else if (state === 'playing') { keys.jump = true; setTimeout(() => keys.jump = false, 120); }
+}, { passive: false });
+jumpBtn.addEventListener('click', () => { keys.jump = true; setTimeout(() => keys.jump = false, 120); });
+restartBtn.addEventListener('click', () => { if (state === 'gameover') restartGame(); });
+
+const overlay = document.getElementById('overlay');
+const menu = document.getElementById('menu');
+const startBtn = document.getElementById('startBtn');
+const soundToggle = document.getElementById('soundToggle');
+const djToggle = document.getElementById('djToggle');
+const musicToggle = document.getElementById('musicToggle');
+
 startBtn.addEventListener('click', startGame);
 soundToggle.addEventListener('click', toggleSound);
-djToggle.addEventListener('click', ()=>{ allowDoubleJump = !allowDoubleJump; djToggle.textContent = 'Double-jump: ' + (allowDoubleJump ? 'ON' : 'OFF'); });
-musicToggle.addEventListener('change', ()=>{ musicOn = musicToggle.checked; if(musicOn) startMusic(); else stopMusic(); });
+djToggle.addEventListener('click', () => { allowDoubleJump = !allowDoubleJump; djToggle.textContent = 'Double-jump: ' + (allowDoubleJump ? 'ON' : 'OFF'); });
+musicToggle.addEventListener('change', () => { musicOn = musicToggle.checked; if (musicOn) startMusic(); else stopMusic(); });
 
 let allowDoubleJump = true;
 
-/* ===== Leaderboard (top5 local) ===== */
-function saveScoreLocal(s){
+/* ===== Leaderboard top5 ===== */
+function saveScoreLocal(s) {
   const list = JSON.parse(localStorage.getItem(bestKey) || '[]');
-  list.push({score:s, when: Date.now()});
-  list.sort((a,b)=>b.score - a.score);
-  const top = list.slice(0,5);
+  list.push({ score: s, when: Date.now() });
+  list.sort((a, b) => b.score - a.score);
+  const top = list.slice(0, 5);
   localStorage.setItem(bestKey, JSON.stringify(top));
-  topList = top; best = top.length ? top[0].score : 0; document.getElementById('best').textContent = best;
+  topList = top;
+  best = top.length ? top[0].score : 0;
+  document.getElementById('best').textContent = best;
 }
-function formatLeaders(){
+function formatLeaders() {
   const top = JSON.parse(localStorage.getItem(bestKey) || '[]');
-  if(!top.length) return 'Top: aucun score';
-  return 'Top: ' + top.map((t,i)=>`${i+1}. ${t.score}`).join('  ');
+  if (!top.length) return 'Top: aucun score';
+  return top.map((t, i) => `${i + 1}. ${t.score}`).join('  ');
 }
 document.getElementById('leaders').textContent = formatLeaders();
 
 /* ===== Collision helper ===== */
-function rectsCollide(a,b){
-  const ax = a.x + (a.hitboxInset||0), ay = a.y + (a.hitboxInset||0), aw = a.width - 2*(a.hitboxInset||0), ah = a.height - 2*(a.hitboxInset||0);
-  const bx = (b.x - (b.width?0:0)), by = (b.y - (b.height?0:0)), bw = b.width||b.size||0, bh = b.height||b.size||0;
+function rectsCollide(a, b) {
+  // a: object with x,y,width,height,hitboxInset optional
+  // b: object with x,y and width/height or size
+  const ax = a.x + (a.hitboxInset || 0);
+  const ay = a.y + (a.hitboxInset || 0);
+  const aw = a.width - 2 * (a.hitboxInset || 0);
+  const ah = a.height - 2 * (a.hitboxInset || 0);
+  const bw = b.width || b.size || 0;
+  const bh = b.height || b.size || 0;
   return !(ax + aw < b.x || ax > b.x + bw || ay + ah < b.y || ay > b.y + bh);
 }
 
-/* ===== Draw helpers ===== */
-function drawBackground(){
-  const g = ctx.createLinearGradient(0,0,0,CSS_H); g.addColorStop(0,'#2c2f3a'); g.addColorStop(1,'#1b1d22'); ctx.fillStyle = g; ctx.fillRect(0,0,CSS_W,CSS_H);
-  parallax.forEach(layer=>{ ctx.fillStyle = layer.color; for(const it of layer.items){ let x = it.x - (frameCount * layer.speed * speedMultiplier % (CSS_W+200)); const nx = ((x % (CSS_W + 300)) + (CSS_W+300)) % (CSS_W+300) - 150; ctx.beginPath(); ctx.ellipse(nx + it.w/2, it.y, it.w, it.h, 0, 0, Math.PI*2); ctx.fill(); } });
-  ctx.fillStyle = '#161616'; ctx.fillRect(0, CSS_H - groundHeight, CSS_W, groundHeight);
-  ctx.fillStyle = '#242424'; for(let gx = -Math.floor(frameCount * 1.6 * speedMultiplier) % 40; gx < CSS_W; gx += 40) ctx.fillRect(gx, CSS_H - 22, 20, 6);
+/* ===== Drawing helpers ===== */
+function drawBackground() {
+  const g = ctx.createLinearGradient(0, 0, 0, CSS_H);
+  g.addColorStop(0, '#2c2f3a');
+  g.addColorStop(1, '#1b1d22');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, CSS_W, CSS_H);
+
+  parallax.forEach((layer) => {
+    ctx.fillStyle = layer.color;
+    for (const it of layer.items) {
+      let x = it.x - (frameCount * layer.speed * speedMultiplier % (CSS_W + 200));
+      const nx = ((x % (CSS_W + 300)) + (CSS_W + 300)) % (CSS_W + 300) - 150;
+      ctx.beginPath();
+      ctx.ellipse(nx + it.w / 2, it.y, it.w, it.h, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+
+  ctx.fillStyle = '#161616';
+  ctx.fillRect(0, CSS_H - groundHeight, CSS_W, groundHeight);
+  ctx.fillStyle = '#242424';
+  for (let gx = -Math.floor(frameCount * 1.6 * speedMultiplier) % 40; gx < CSS_W; gx += 40) {
+    ctx.fillRect(gx, CSS_H - 22, 20, 6);
+  }
 }
 
-function drawPlayer(){
-  ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(player.x + 6, player.y + player.height - 4, player.width, 8);
-  player.animTick++; if(player.animTick > 6){ player.animTick = 0; player.animFrame = (player.animFrame + 1) % 4; }
-  const hue = 200 + (player.animFrame * 10); const bob = Math.sin((Date.now()/120) + player.animFrame) * 2;
-  ctx.fillStyle = `hsl(${hue}deg 80% 90%)`; ctx.fillRect(Math.round(player.x), Math.round(player.y + bob), player.width, player.height);
-  ctx.fillStyle = '#000'; ctx.fillRect(player.x + 8, player.y + 10 + bob, 6, 6); ctx.fillRect(player.x + 22, player.y + 10 + bob, 6, 6);
+function drawPlayer() {
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(player.x + 6, player.y + player.height - 4, player.width, 8);
+
+  player.animTick++;
+  if (player.animTick > 6) { player.animTick = 0; player.animFrame = (player.animFrame + 1) % 4; }
+  const hue = 200 + (player.animFrame * 10);
+  const bob = Math.sin((Date.now() / 120) + player.animFrame) * 2;
+  ctx.fillStyle = `hsl(${hue}deg 80% 90%)`;
+  ctx.fillRect(Math.round(player.x), Math.round(player.y + bob), player.width, player.height);
+
+  ctx.fillStyle = '#000';
+  ctx.fillRect(player.x + 8, player.y + 10 + bob, 6, 6);
+  ctx.fillRect(player.x + 22, player.y + 10 + bob, 6, 6);
 }
 
-function drawObstacle(ob){
-  if(ob.type === 'block'){ ctx.fillStyle = '#ffd700'; ctx.fillRect(Math.round(ob.x), Math.round(ob.y), ob.width, ob.height); ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.strokeRect(Math.round(ob.x)+0.5, Math.round(ob.y)+0.5, ob.width-1, ob.height-1); }
-  else if(ob.type === 'spike'){ ctx.fillStyle = '#ff5252'; const left = ob.x, top = ob.y, w = ob.width, h = ob.height, spikeCount = 3, sw = w/spikeCount; for(let i=0;i<spikeCount;i++){ const sx = left + i*sw; ctx.beginPath(); ctx.moveTo(sx, top + h); ctx.lineTo(sx + sw/2, top); ctx.lineTo(sx + sw, top + h); ctx.closePath(); ctx.fill(); } }
-  else if(ob.type === 'moving'){ ctx.fillStyle = '#6ee7b7'; ctx.fillRect(Math.round(ob.x), Math.round(ob.y), ob.width, ob.height); }
+function drawObstacle(ob) {
+  if (ob.type === 'block') {
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(Math.round(ob.x), Math.round(ob.y), ob.width, ob.height);
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.strokeRect(Math.round(ob.x) + 0.5, Math.round(ob.y) + 0.5, ob.width - 1, ob.height - 1);
+  } else if (ob.type === 'spike') {
+    ctx.fillStyle = '#ff5252';
+    const left = ob.x, top = ob.y, w = ob.width, h = ob.height;
+    const spikeCount = 3;
+    const sw = w / spikeCount;
+    for (let i = 0; i < spikeCount; i++) {
+      const sx = left + i * sw;
+      ctx.beginPath();
+      ctx.moveTo(sx, top + h);
+      ctx.lineTo(sx + sw / 2, top);
+      ctx.lineTo(sx + sw, top + h);
+      ctx.closePath();
+      ctx.fill();
+    }
+  } else if (ob.type === 'moving') {
+    ctx.fillStyle = '#6ee7b7';
+    ctx.fillRect(Math.round(ob.x), Math.round(ob.y), ob.width, ob.height);
+  }
 }
 
-/* ===== Game mechanics ===== */
-function resetState(){
-  player.x = 120; player.y = CSS_H - groundHeight - playerSize; player.vy = 0; player.isJumping = false; player.doubleJumpAvailable = allowDoubleJump;
-  obstacles = []; spawnTimer = 0; frameCount = 0; score = 0; baseSpeed = 4; speedMultiplier = 1; spawnInterval = 95; scoreEl.textContent = score; speedDisplay.textContent = speedMultiplier.toFixed(2)+'x';
-  powerUps = []; invincibleUntil = 0; scoreMultiplier = 1; updatePowerUI();
+/* ===== Game mechanics (reset/start/end) ===== */
+function resetState() {
+  player.x = 120;
+  player.y = CSS_H - groundHeight - playerSize;
+  player.vy = 0;
+  player.isJumping = false;
+  player.doubleJumpAvailable = allowDoubleJump;
+  obstacles = [];
+  spawnTimer = 0;
+  frameCount = 0;
+  score = 0;
+  baseSpeed = 4;
+  speedMultiplier = 1;
+  spawnInterval = 95;
+  scoreEl.textContent = score;
+  speedDisplay.textContent = speedMultiplier.toFixed(2) + 'x';
+  powerUps = [];
+  invincibleUntil = 0;
+  scoreMultiplier = 1;
+  updatePowerUI();
   initParallax();
+  particles.length = 0;
+  screenFlashAlpha = 0;
 }
 
-function startGame(){ if(soundOn) ensureAudio(); if(musicOn) startMusic(); resetState(); state = 'playing'; overlay.style.pointerEvents = 'none'; overlay.style.opacity = '0'; menu.style.display = 'none'; requestAnimationFrame(loop); }
-function restartGame(){ if(musicOn) startMusic(); resetState(); state = 'playing'; overlay.style.pointerEvents = 'none'; overlay.style.opacity = '0'; menu.style.display = 'none'; requestAnimationFrame(loop); }
-
-function endGame(){
-  if(performance.now() < invincibleUntil) return; // ignore if invincible
-  state = 'gameover'; playCrash(); createParticles(player.x + player.width/2, player.y + player.height/2, '#ff5252', 28); startShake(14); triggerFlash(0.9); try{ navigator.vibrate && navigator.vibrate([120,50,80]); }catch(e){} saveScoreLocal(score); setTimeout(()=> showGameOverPanel(), 250); stopMusic();
+function startGame() {
+  if (soundOn) ensureAudio();
+  if (musicOn) startMusic();
+  resetState();
+  state = 'playing';
+  overlay.style.pointerEvents = 'none';
+  overlay.style.opacity = '0';
+  menu.style.display = 'none';
+  requestAnimationFrame(loop);
 }
 
-/* ===== Update loop ===== */
-let lastPatternFrame = 0;
-function updateGame(){
+function restartGame() {
+  if (musicOn) startMusic();
+  resetState();
+  state = 'playing';
+  overlay.style.pointerEvents = 'none';
+  overlay.style.opacity = '0';
+  menu.style.display = 'none';
+  requestAnimationFrame(loop);
+}
+
+function endGame() {
+  if (performance.now() < invincibleUntil) return; // ignore if invincible
+  state = 'gameover';
+  playCrash();
+  createParticles(player.x + player.width / 2, player.y + player.height / 2, '#ff5252', 28);
+  startShake(14);
+  triggerFlash(0.9);
+  try { navigator.vibrate && navigator.vibrate([120, 50, 80]); } catch (e) {}
+  saveScoreLocal(score);
+  stopMusic();
+  setTimeout(() => showGameOverPanel(), 200);
+}
+
+/* ===== Update (physics, spawn, collisions) ===== */
+function updateGame() {
   frameCount++;
-  if(frameCount % 240 === 0){ speedMultiplier += 0.03; if(spawnInterval > 42) spawnInterval -= 1; }
-  speedDisplay.textContent = speedMultiplier.toFixed(2)+'x';
 
-  // power-up timers
-  if(performance.now() > invincibleUntil) { /* no-op */ }
+  if (frameCount % 240 === 0) {
+    speedMultiplier += 0.03;
+    if (spawnInterval > 42) spawnInterval -= 1;
+  }
+  speedDisplay.textContent = speedMultiplier.toFixed(2) + 'x';
+
   updatePowerUI();
 
-  // input handling
-  if(keys.jump){
-    if(!player.isJumping){ player.vy = jumpStrength; player.isJumping = true; player.doubleJumpAvailable = allowDoubleJump; playJump(); createParticles(player.x + player.width/2, player.y + player.height, '#ffd700', 10); }
-    else if(player.isJumping && player.doubleJumpAvailable && allowDoubleJump){ player.vy = jumpStrength * 0.84; player.doubleJumpAvailable = false; playJump(); createParticles(player.x + player.width/2, player.y + player.height/2, '#6ee7b7', 12); }
+  // input handling (jump)
+  if (keys.jump) {
+    if (!player.isJumping) {
+      player.vy = jumpStrength;
+      player.isJumping = true;
+      player.doubleJumpAvailable = allowDoubleJump;
+      playJump();
+      createParticles(player.x + player.width / 2, player.y + player.height, '#ffd700', 10);
+    } else if (player.isJumping && player.doubleJumpAvailable && allowDoubleJump) {
+      player.vy = jumpStrength * 0.84;
+      player.doubleJumpAvailable = false;
+      playJump();
+      createParticles(player.x + player.width / 2, player.y + player.height / 2, '#6ee7b7', 12);
+    }
     keys.jump = false;
   }
 
   // physics
-  player.vy += gravity; player.y += player.vy; const floorY = CSS_H - groundHeight - player.height;
-  if(player.y > floorY){ player.y = floorY; player.vy = 0; player.isJumping = false; player.doubleJumpAvailable = allowDoubleJump; }
+  player.vy += gravity;
+  player.y += player.vy;
+  const floorY = CSS_H - groundHeight - player.height;
+  if (player.y > floorY) {
+    player.y = floorY;
+    player.vy = 0;
+    player.isJumping = false;
+    player.doubleJumpAvailable = allowDoubleJump;
+  }
 
-  // obstacles update
-  for(let i = obstacles.length-1;i>=0;i--){
+  // obstacles update and collision
+  for (let i = obstacles.length - 1; i >= 0; i--) {
     const ob = obstacles[i];
-    if(ob.type === 'moving'){ ob.phase += 0.06; ob.y = ob.baseY + Math.sin(ob.phase) * ob.amp; }
-    ob.x -= baseSpeed * speedMultiplier * (1 + (ob.speedMod||0));
+    if (ob.type === 'moving') {
+      ob.phase += 0.06;
+      ob.y = ob.baseY + Math.sin(ob.phase) * ob.amp;
+    }
+    ob.x -= baseSpeed * speedMultiplier * (1 + (ob.speedMod || 0));
 
-    // check collision (unless invincible)
-    if(!(performance.now() < invincibleUntil) && rectsCollide(player, ob)){ endGame(); return; }
+    // collision (unless invincible)
+    if (!(performance.now() < invincibleUntil) && rectsCollide(player, ob)) {
+      endGame();
+      return;
+    }
 
-    // scoring
-    if(!ob.passed && ob.x + ob.width < player.x){ ob.passed = true; score += 1 * scoreMultiplier; scoreEl.textContent = score; playScore(); createParticles(player.x, player.y + 8, '#ffd700', 8); }
+    // scoring when passed
+    if (!ob.passed && ob.x + ob.width < player.x) {
+      ob.passed = true;
+      score += 1 * scoreMultiplier;
+      scoreEl.textContent = score;
+      playScore();
+      createParticles(player.x, player.y + 8, '#ffd700', 8);
+    }
 
-    if(ob.x + ob.width < -60) obstacles.splice(i,1);
+    if (ob.x + ob.width < -60) obstacles.splice(i, 1);
   }
 
   // power-ups update
   updatePowerUps();
 
-  // spawn patterns occasionally (instead of single obstacle spawn)
+  // spawn logic: sometimes patterns
   spawnTimer++;
-  if(spawnTimer >= spawnInterval){
+  if (spawnTimer >= spawnInterval) {
     spawnTimer = 0;
-    // occasionally choose a pattern
-    if(Math.random() < 0.65) choosePatternAndSpawn();
-    else spawnBlock(0); // fallback
+    if (Math.random() < 0.65) choosePatternAndSpawn();
+    else spawnBlock(0);
   }
 
-  // particles
+  // periodically spawn a power-up (small chance)
+  if (Math.random() < 0.004 && powerUps.length < 2) spawnPowerUp();
+
   updateParticles();
 
-  // screen flash decay
   screenFlashAlpha = Math.max(0, screenFlashAlpha - 0.06);
 }
 
-/* ===== Draw loop ===== */
-function draw(){
+/* ===== Draw ===== */
+function draw() {
   applyShake();
   drawBackground();
-  for(const ob of obstacles) drawObstacle(ob);
+  for (const ob of obstacles) drawObstacle(ob);
   drawPowerUps();
   drawPlayer();
   drawParticles();
   restoreShake();
 
-  // screen flash overlay
-  if(screenFlashAlpha > 0){
-    ctx.fillStyle = `rgba(255,255,255,${screenFlashAlpha*0.55})`;
-    ctx.fillRect(0,0,CSS_W,CSS_H);
+  if (screenFlashAlpha > 0) {
+    ctx.fillStyle = `rgba(255,255,255,${screenFlashAlpha * 0.55})`;
+    ctx.fillRect(0, 0, CSS_W, CSS_H);
   }
 }
 
-/* ===== Main loop ===== */
+/* ===== Loop ===== */
 let rafId = null;
-function loop(){ if(state !== 'playing') return; updateGame(); draw(); rafId = requestAnimationFrame(loop); }
+function loop() {
+  if (state !== 'playing') return;
+  updateGame();
+  draw();
+  rafId = requestAnimationFrame(loop);
+}
 
 /* ===== Menu / GameOver UI ===== */
-function showGameOverPanel(){
-  overlay.style.pointerEvents = 'auto'; overlay.style.opacity = '1'; menu.style.display = 'block';
+function showGameOverPanel() {
+  overlay.style.pointerEvents = 'auto';
+  overlay.style.opacity = '1';
+  menu.style.display = 'block';
   const top = JSON.parse(localStorage.getItem(bestKey) || '[]');
   const html = `
     <div class="big">Game Over</div>
@@ -415,37 +712,36 @@ function showGameOverPanel(){
   document.getElementById('restartNow').addEventListener('click', restartGame);
 }
 
-/* ===== Sounds/UI toggles ===== */
-function toggleSound(){ soundOn = !soundOn; soundToggle.textContent = soundOn ? '🔊' : '🔈'; if(soundOn && audioCtx && audioCtx.state==='suspended') audioCtx.resume(); }
-function startMusic(){ if(!musicOn) return; ensureAudio(); startMusicLoop(); }
-function stopMusic(){ stopMusicLoop(); }
-let musicLoopStarted = false;
-function startMusicLoop(){ if(musicIntervalId) return; musicOn = true; startMusic(); } // kept for backward compat
-// Use the earlier created startMusic/stopMusic functions
-// They start/stop a repeating setInterval that plays tones
+/* ===== Helpers (leaderboard, toggles) ===== */
+function toggleSound() { soundOn = !soundOn; soundToggle.textContent = soundOn ? '🔊' : '🔈'; if (soundOn && audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); }
+function formatLeaders() { const top = JSON.parse(localStorage.getItem(bestKey) || '[]'); if (!top.length) return 'Top: aucun score'; return top.map((t, i) => `${i + 1}. ${t.score}`).join('  '); }
 
-/* ===== Helpers & init ===== */
-function formatLeaders(){ const top = JSON.parse(localStorage.getItem(bestKey) || '[]'); if(!top.length) return 'Top: aucun score'; return top.map((t,i)=>`${i+1}. ${t.score}`).join('  '); }
-
-/* ===== Save & load top5 ===== */
-function saveScoreLocal(s){
+function saveScoreLocal(s) {
   const list = JSON.parse(localStorage.getItem(bestKey) || '[]');
-  list.push({score:s, when: Date.now()});
-  list.sort((a,b)=>b.score - a.score);
-  const top = list.slice(0,5);
+  list.push({ score: s, when: Date.now() });
+  list.sort((a, b) => b.score - a.score);
+  const top = list.slice(0, 5);
   localStorage.setItem(bestKey, JSON.stringify(top));
-  topList = top; best = top.length ? top[0].score : 0; document.getElementById('best').textContent = best;
+  topList = top; best = top.length ? top[0].score : 0;
+  document.getElementById('best').textContent = best;
 }
 
-/* Expose & start */
-document.addEventListener('visibilitychange', ()=>{ if(document.hidden && rafId){ cancelAnimationFrame(rafId); rafId = null; } else if(!document.hidden && state==='playing' && !rafId) rafId = requestAnimationFrame(loop); });
+/* Pause/resume on visibility change */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  else if (!document.hidden && state === 'playing' && !rafId) rafId = requestAnimationFrame(loop);
+});
+
+/* Initialize UI state */
 document.getElementById('leaders').textContent = formatLeaders();
 soundToggle.textContent = soundOn ? '🔊' : '🔈';
 document.getElementById('best').textContent = best;
 
-/* Start music if toggled and user interacted (handled on startGame) */
-function safeStartMusicOnInteraction(){ if(musicToggle.checked) { musicOn = true; startMusic(); } }
-document.addEventListener('click', safeStartMusicOnInteraction, {once:true});
+/* Start music only after a user gesture (safe) */
+function safeStartMusicOnInteraction() {
+  if (musicToggle.checked) { musicOn = true; startMusic(); }
+}
+document.addEventListener('click', safeStartMusicOnInteraction, { once: true });
 
 </script>
 </body>
