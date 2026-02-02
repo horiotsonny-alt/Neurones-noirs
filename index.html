@@ -3,159 +3,130 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>La flamme</title>
+<title>La Flamme</title>
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; font-family: 'Helvetica Neue', Arial, sans-serif; }
-
-  html, body { height:100%; background: #1b1d22; color: #fff; }
-
-  body {
-    display:flex;
-    flex-direction: column;
-    align-items:center;
-    justify-content:flex-start;
-    text-align:center;
-    padding-top:50px;
-  }
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Helvetica Neue', Arial, sans-serif; }
+  html, body { height:100%; background:#1b1d22; color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; text-align:center; padding-top:50px; }
 
   h1 {
-    font-size: 3.5rem;
-    color: #ffd700;
-    letter-spacing: 2px;
-    margin-bottom: 20px;
+    font-size:3.5rem;
+    color:#ffd700;
+    letter-spacing:2px;
+    margin-bottom:20px;
+    animation:flickerTitle 1.5s infinite alternate;
   }
 
-  /* Bougie principale */
+  @keyframes flickerTitle {
+    0% { text-shadow: 0 0 4px #fff, 0 0 10px #ffd700; }
+    50% { text-shadow: 0 0 6px #fff, 0 0 14px #ffb700; }
+    100% { text-shadow: 0 0 4px #fff, 0 0 10px #ffd700; }
+  }
+
   .candle-container {
     position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 40px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    margin-bottom:40px;
   }
 
   .candle {
     position: relative;
-    width: 20px;
-    height: 100px;
-    background: #eee;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(255,255,255,0.2);
-    transition: background 0.3s;
+    width:20px;
+    height:100px;
+    background:#eee;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(255,255,255,0.2);
   }
 
   .flame {
-    position: absolute;
-    top: -40px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 20px;
-    height: 40px;
-    background: radial-gradient(circle at 50% 50%, #fff 0%, #ffd700 60%, #ff4500 100%);
-    border-radius: 50%;
-    animation: flicker 1s infinite alternate;
-    filter: blur(1px);
+    position:absolute;
+    top:-40px;
+    left:50%;
+    transform:translateX(-50%);
+    width:20px;
+    height:40px;
+    background:radial-gradient(circle at 50% 50%, #fff 0%, #ffd700 60%, #ff4500 100%);
+    border-radius:50%;
+    animation:flicker 1s infinite alternate;
+    filter:blur(1px);
   }
 
   @keyframes flicker {
-    0% { transform: translateX(-50%) scale(1,1); opacity: 0.8; }
-    25% { transform: translateX(-50%) scale(1.1,0.9); opacity: 1; }
-    50% { transform: translateX(-50%) scale(0.9,1.1); opacity: 0.9; }
-    75% { transform: translateX(-50%) scale(1,1.05); opacity: 1; }
-    100% { transform: translateX(-50%) scale(1,1); opacity: 0.8; }
+    0% { transform:translateX(-50%) scale(1,1); opacity:0.8; }
+    25% { transform:translateX(-50%) scale(1.1,0.9); opacity:1; }
+    50% { transform:translateX(-50%) scale(0.9,1.1); opacity:0.9; }
+    75% { transform:translateX(-50%) scale(1,1.05); opacity:1; }
+    100% { transform:translateX(-50%) scale(1,1); opacity:0.8; }
   }
 
   p {
-    max-width: 500px;
-    line-height: 1.6;
-    color: rgba(255,255,255,0.9);
-    font-size: 1.2rem;
-    margin-bottom: 50px;
-    padding: 0 15px;
+    max-width:500px;
+    line-height:1.6;
+    color:rgba(255,255,255,0.9);
+    font-size:1.2rem;
+    margin-bottom:50px;
   }
 
-  /* Section des icônes de bougie */
   .candles-shop {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    max-height: 220px;
-    overflow-y: auto;
-    gap: 15px;
-    padding: 10px;
-    border-top: 1px solid rgba(255,255,255,0.2);
-    border-bottom: 1px solid rgba(255,255,255,0.2);
-    width: 150px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    max-height:200px;
+    overflow-y:auto;
+    gap:15px;
+    padding:10px;
+    border-top:1px solid rgba(255,255,255,0.2);
+    border-bottom:1px solid rgba(255,255,255,0.2);
+    width:150px;
+    transition: max-height 0.3s;
   }
 
   .candles-shop img {
-    width: 50px;
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-    border-radius: 8px;
+    width:50px;
+    cursor:pointer;
+    transition:transform 0.2s, box-shadow 0.2s;
+    border-radius:8px;
   }
 
   .candles-shop img:hover {
-    transform: scale(1.2);
-    box-shadow: 0 0 15px rgba(255,255,180,0.8);
+    transform:scale(1.2);
+    box-shadow:0 0 15px rgba(255,255,180,0.8);
   }
 
-  /* Scrollbar minimaliste */
-  .candles-shop::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .candles-shop::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.3);
-    border-radius: 3px;
-  }
-
-  .candles-shop::-webkit-scrollbar-track {
-    background: transparent;
-  }
+  .candles-shop::-webkit-scrollbar { width:6px; }
+  .candles-shop::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius:3px; }
+  .candles-shop::-webkit-scrollbar-track { background: transparent; }
 
   /* Responsive */
-  @media (max-width:600px) {
-    h1 { font-size: 2.5rem; }
-    .candle { height: 80px; width: 16px; }
-    .flame { width: 16px; height: 32px; }
-    p { font-size: 1rem; padding: 0 15px; margin-bottom: 30px; }
-    .candles-shop { width: 120px; max-height: 150px; }
-    .candles-shop img { width: 40px; }
+  @media(max-width:600px) {
+    h1 { font-size:2.5rem; }
+    .candle { height:80px; width:16px; }
+    .flame { width:16px; height:32px; }
+    p { font-size:1rem; padding:0 15px; margin-bottom:30px; }
+    .candles-shop { width:120px; max-height:150px; }
+    .candles-shop img { width:40px; }
   }
 </style>
 </head>
 <body>
-  <h1>La flamme</h1>
+  <h1>La Flamme</h1>
 
   <div class="candle-container">
-    <div class="candle" id="mainCandle">
+    <div class="candle">
       <div class="flame"></div>
     </div>
   </div>
 
   <p>Un espace zen et minimaliste, inspiré par la lumière douce et la sérénité. Respirez profondément et laissez-vous apaiser.</p>
 
-  <div class="candles-shop" id="candlesShop">
-    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589875.png" alt="Bougie 1" title="Bougie 1" data-color="#f5e6c4">
-    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589876.png" alt="Bougie 2" title="Bougie 2" data-color="#ffd700">
-    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589877.png" alt="Bougie 3" title="Bougie 3" data-color="#ff4500">
-    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589878.png" alt="Bougie 4" title="Bougie 4" data-color="#fff">
-    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589879.png" alt="Bougie 5" title="Bougie 5" data-color="#e6e6fa">
-    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589880.png" alt="Bougie 6" title="Bougie 6" data-color="#ffa500">
+  <div class="candles-shop">
+    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589875.png" alt="Bougie 1" title="Bougie 1">
+    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589876.png" alt="Bougie 2" title="Bougie 2">
+    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589877.png" alt="Bougie 3" title="Bougie 3">
+    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589878.png" alt="Bougie 4" title="Bougie 4">
+    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589879.png" alt="Bougie 5" title="Bougie 5">
+    <img src="https://cdn-icons-png.flaticon.com/512/2589/2589880.png" alt="Bougie 6" title="Bougie 6">
   </div>
-
-<script>
-  // Interaction : changer couleur de la bougie centrale
-  const mainCandle = document.getElementById('mainCandle');
-  const shopImages = document.querySelectorAll('#candlesShop img');
-
-  shopImages.forEach(img => {
-    img.addEventListener('click', () => {
-      const color = img.dataset.color || '#eee';
-      mainCandle.style.background = color;
-    });
-  });
-</script>
 </body>
 </html>
