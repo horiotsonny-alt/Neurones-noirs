@@ -1,1 +1,1 @@
-Jeu ressemblant à géometrie dash//fomartion personnel 
+Jeu ressemblant à géometrie dash//fomation personnel 
